@@ -1,22 +1,21 @@
 import axios from "axios";
 
-// ===== FUNGSI UNTUK BASEURL DINAMIS =====
+// ===== FUNGSI UNTUK BASEURL =====
+// Diambil dari environment variable VITE_API_URL (di-set saat build/deploy).
+// Fallback ke localhost:5000 untuk development lokal.
 const getBaseUrl = () => {
-  const hostname = window.location.hostname;
-
-  // Jika diakses via localhost atau 127.0.0.1
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return "http://localhost:5000/api";
-  }
-
-  // Jika diakses via IP (misal 192.168.x.x)
-  return `http://${hostname}:5000/api`;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return `${envUrl.replace(/\/$/, "")}/api`;
+  return "http://localhost:5000/api";
 };
 
 // ===== INSTANCE AXIOS =====
 const api = axios.create({
   baseURL: getBaseUrl(),
   withCredentials: true, // wajib agar cookie httpOnly ikut terkirim
+  headers: {
+    "ngrok-skip-browser-warning": "true", // skip halaman warning ngrok free tier
+  },
 });
 
 // ===== INTERCEPTOR RESPONSE =====
