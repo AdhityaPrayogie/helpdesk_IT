@@ -275,7 +275,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
         <div className="chart-block">
           <div className="chart-summary">
             <span className="chart-total">{totalDalamRange}</span>
-            <span className="muted">tiket {rangeLabel}</span>
+            <span className="muted">Helpdesk {rangeLabel}</span>
           </div>
 
           <div className="chart-wrap">

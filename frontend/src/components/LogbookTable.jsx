@@ -494,6 +494,20 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
 
       <div className="table-scroll">
         <table>
+          <colgroup>
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "14%" }} />
+          </colgroup>
           <thead>
             <tr>
               <th>Tanggal</th>
@@ -520,24 +534,66 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
             )}
             {filteredData.map((row) => (
               <tr key={row.id}>
-                <td>{row.tanggal?.slice(0, 10)}</td>
-                <td>{row.jam_mulai ? row.jam_mulai.slice(0, 5) : "-"}</td>
-                <td>{row.jam_selesai ? row.jam_selesai.slice(0, 5) : "-"}</td>
-                <td>
+                <td data-label="Tanggal" className="cell-nowrap">
+                  {row.tanggal?.slice(0, 10)}
+                </td>
+                <td data-label="Jam Mulai" className="cell-nowrap">
+                  {row.jam_mulai ? row.jam_mulai.slice(0, 5) : "-"}
+                </td>
+                <td data-label="Jam Selesai" className="cell-nowrap">
+                  {row.jam_selesai ? row.jam_selesai.slice(0, 5) : "-"}
+                </td>
+                <td data-label="Durasi" className="cell-nowrap">
                   {row.total_menit != null ? `${row.total_menit} mnt` : "-"}
                 </td>
-                <td>{row.nama_pic}</td>
-                <td>{row.nama_it}</td>
-                <td>{row.kategori}</td>
-                <td>{row.unit_kerja || "-"}</td>
-                <td>{row.isi_helpdesk}</td>
-                <td>{row.tindakan || "-"}</td>
-                <td>
+                <td
+                  data-label="Nama PIC"
+                  className="cell-truncate"
+                  title={row.nama_pic}
+                >
+                  {row.nama_pic}
+                </td>
+                <td
+                  data-label="Nama IT"
+                  className="cell-truncate"
+                  title={row.nama_it}
+                >
+                  {row.nama_it}
+                </td>
+                <td
+                  data-label="Kategori"
+                  className="cell-truncate"
+                  title={row.kategori}
+                >
+                  {row.kategori}
+                </td>
+                <td
+                  data-label="Unit Kerja"
+                  className="cell-truncate"
+                  title={row.unit_kerja || "-"}
+                >
+                  {row.unit_kerja || "-"}
+                </td>
+                <td
+                  data-label="Isi Helpdesk"
+                  className="cell-clamp"
+                  title={row.isi_helpdesk}
+                >
+                  {row.isi_helpdesk}
+                </td>
+                <td
+                  data-label="Tindakan"
+                  className="cell-clamp"
+                  title={row.tindakan || "-"}
+                >
+                  {row.tindakan || "-"}
+                </td>
+                <td data-label="Status" className="cell-nowrap">
                   <span className={`badge badge-${row.status.toLowerCase()}`}>
                     {row.status}
                   </span>
                 </td>
-                <td>
+                <td data-label="Aksi" className="cell-aksi">
                   <div className="action-btns">
                     <button
                       className="btn-secondary"

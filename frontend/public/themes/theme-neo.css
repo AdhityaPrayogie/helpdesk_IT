@@ -1029,16 +1029,17 @@ tbody tr:last-child td {
    =================================================== */
 .action-btns {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
 
 .action-btns button {
-  flex: 0 0 auto;
+  width: 100%;
   padding: 6px 10px;
   font-size: 12px;
   white-space: nowrap;
+  justify-content: center;
 }
 
 /* ===================================================
@@ -2486,6 +2487,22 @@ tbody tr:last-child td {
   .card {
     padding: 16px;
   }
+  .logbook-table-wrap .action-btns {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .logbook-table-wrap .action-btns button {
+    flex: none;
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 11.5px;
+    white-space: nowrap;
+    justify-content: center;
+  }
 
   .card-header {
     flex-direction: column;
@@ -2550,7 +2567,7 @@ tbody tr:last-child td {
   }
 
   table {
-    min-width: 780px;
+    min-width: 860px;
   }
 
   .modal-backdrop {
@@ -2572,16 +2589,6 @@ tbody tr:last-child td {
     width: 100%;
   }
 
-  .action-btns {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .action-btns button {
-    flex: 1 1 calc(50% - 3px);
-    min-width: 0;
-    justify-content: center;
-  }
   .master-add-form {
     flex-direction: column;
   }

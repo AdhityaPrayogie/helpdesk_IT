@@ -38,7 +38,7 @@ export default function StatsCards({ refreshTrigger }) {
   };
 
   const cards = [
-    { label: "Total Tiket", value: stats.total, tone: "default" },
+    { label: "Total Helpdesk", value: stats.total, tone: "default" },
     { label: "Hari Ini", value: stats.hariIni, tone: "info" },
     { label: "Proses", value: stats.proses, tone: "proses" },
     { label: "Selesai", value: stats.selesai, tone: "success" },
