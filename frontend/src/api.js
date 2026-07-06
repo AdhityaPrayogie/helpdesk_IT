@@ -1,13 +1,11 @@
 import axios from "axios";
 
-// ===== FUNGSI UNTUK BASEURL =====
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) return `${envUrl.replace(/\/$/, "")}/api`;
   return "http://localhost:5000/api";
 };
 
-// ===== INSTANCE AXIOS =====
 const api = axios.create({
   baseURL: getBaseUrl(),
   withCredentials: true,
@@ -16,7 +14,6 @@ const api = axios.create({
   },
 });
 
-// ===== INTERCEPTOR RESPONSE =====
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,7 +25,6 @@ api.interceptors.response.use(
   },
 );
 
-// ===== EXPORT FUNGSI API =====
 export const getPic = (all = false) =>
   api.get("/pic", { params: all ? { all: 1 } : {} });
 export const createPic = (data) => api.post("/pic", data);
@@ -69,7 +65,6 @@ export const resetUserPassword = (id, password) =>
   api.put(`/users/${id}/password`, { password });
 export const deleteUser = (id) => api.delete(`/users/${id}`);
 
-// ===== EXPORT CSV (juga dinamis) =====
 export const exportCsvUrl = (start, end) =>
   `${getBaseUrl()}/logbook/export/csv?start=${start}&end=${end}`;
 
