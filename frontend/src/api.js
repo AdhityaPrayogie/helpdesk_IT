@@ -1,22 +1,19 @@
 import axios from "axios";
 
-// ===== FUNGSI UNTUK BASEURL DINAMIS =====
+// ===== FUNGSI UNTUK BASEURL =====
 const getBaseUrl = () => {
-  const hostname = window.location.hostname;
-
-  // Jika diakses via localhost atau 127.0.0.1
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return "http://localhost:5000/api";
-  }
-
-  // Jika diakses via IP (misal 192.168.x.x)
-  return `http://${hostname}:5000/api`;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return `${envUrl.replace(/\/$/, "")}/api`;
+  return "http://localhost:5000/api";
 };
 
 // ===== INSTANCE AXIOS =====
 const api = axios.create({
   baseURL: getBaseUrl(),
-  withCredentials: true, // wajib agar cookie httpOnly ikut terkirim
+  withCredentials: true,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
 });
 
 // ===== INTERCEPTOR RESPONSE =====
@@ -24,7 +21,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const isAuthCheck = error.config?.url?.includes("/auth/me");
-
     if (error.response?.status === 401 && !isAuthCheck) {
       window.location.href = "/login";
     }

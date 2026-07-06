@@ -6,17 +6,13 @@ require("dotenv").config();
 const app = express();
 
 // ===== KONFIGURASI CORS =====
-// Opsi A: Izinkan origin tertentu (localhost + IP)
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://192.168.1.49:5173", // sesuaikan dengan IP kamu
-];
-
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim());
+  
 app.use(
   cors({
     origin: function (origin, callback) {
-      // izinkan request tanpa origin (misal dari postman/curl)
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
@@ -27,9 +23,6 @@ app.use(
     credentials: true,
   }),
 );
-
-// Opsi B (lebih simpel, izinkan semua origin – hanya untuk development)
-// app.use(cors({ origin: true, credentials: true }));
 
 // ===== MIDDLEWARE LAINNYA =====
 app.use(express.json());
