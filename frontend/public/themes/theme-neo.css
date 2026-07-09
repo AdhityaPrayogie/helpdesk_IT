@@ -74,6 +74,32 @@
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-snap: cubic-bezier(0.68, -0.4, 0.32, 1.4);
+
+  /* ===== chart tokens — neo-brutalism ===== */
+--chart-grid: var(--border-soft);
+--chart-tick: var(--muted);
+--chart-axis-stroke: var(--ink);
+--chart-axis-width: 2px;
+--chart-cursor: var(--accent-soft);
+
+--chart-bar-fill: #60a5fa;
+--chart-bar-stroke: var(--ink);
+--chart-bar-stroke-width: 2px;
+--chart-bar-radius: 3px;
+
+--chart-tooltip-bg: var(--card-bg);
+--chart-tooltip-border: 2px solid var(--ink);
+--chart-tooltip-shadow: 3px 3px 0 var(--shadow-color);
+
+--chart-pie-stroke: var(--ink);
+--chart-pie-stroke-width: 2px;
+
+--chart-proses: #fcd34d;
+--chart-proses-text: #78350f;
+--chart-selesai: #86efac;
+--chart-selesai-text: #14532d;
+--chart-batal: #fca5a5;
+--chart-batal-text: #7f1d1d;
 }
 
 @keyframes fadeInUp {

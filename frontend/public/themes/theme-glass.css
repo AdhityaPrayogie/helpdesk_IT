@@ -117,6 +117,32 @@
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ===== chart tokens — glassmorphism ===== */
+--chart-grid: var(--hairline);
+--chart-tick: var(--muted);
+--chart-axis-stroke: var(--hairline);
+--chart-axis-width: 1px;
+--chart-cursor: var(--accent-soft);
+
+--chart-bar-fill: rgba(96, 165, 250, 0.75);
+--chart-bar-stroke: transparent;
+--chart-bar-stroke-width: 0px;
+--chart-bar-radius: 6px;
+
+--chart-tooltip-bg: var(--card-bg-strong);
+--chart-tooltip-border: 1px solid var(--glass-border);
+--chart-tooltip-shadow: var(--shadow-glass);
+
+--chart-pie-stroke: rgba(255, 255, 255, 0.6);
+--chart-pie-stroke-width: 2px;
+
+--chart-proses: rgba(245, 158, 11, 0.32);
+--chart-proses-text: #92400e;
+--chart-selesai: rgba(34, 197, 94, 0.3);
+--chart-selesai-text: #15803d;
+--chart-batal: rgba(239, 68, 68, 0.28);
+--chart-batal-text: #b91c1c;
 }
 
 @keyframes fadeInUp {

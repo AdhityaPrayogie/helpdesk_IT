@@ -37,18 +37,6 @@ const MONTH_NAMES = [
 
 const STATUS_ORDER = ["Proses", "Selesai", "Batal"];
 
-const STATUS_COLORS = {
-  Proses: "#7093f3",
-  Selesai: "#85f7ab",
-  Batal: "#fc7878",
-};
-
-const STATUS_TEXT_COLORS = {
-  Proses: "#2a3fb0",
-  Selesai: "#157347",
-  Batal: "#5b5f70",
-};
-
 function toDateStr(d) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -128,6 +116,110 @@ function useViewportWidth() {
   return width;
 }
 
+// ---------------------------------------------------------------------
+// THEME-AWARE CHART TOKENS
+// Recharts butuh warna/angka konkret di props-nya (bukan className),
+// jadi di sini kita "curi" nilai dari CSS variable yang sudah didefinisikan
+// di style.css tiap tema (--chart-*). Dengan begini, chart otomatis ikut
+// tampilan neo-brutalism (hard shadow, border tebal, warna solid) atau
+// glassmorphism (blur shadow, border tipis, warna translucent) tanpa
+// perlu hardcode hex di komponen ini. Kalau variabel belum didefinisikan
+// di CSS, dipakai fallback neo-brutalism supaya tetap aman.
+// ---------------------------------------------------------------------
+function readCssVar(name, fallback) {
+  if (typeof window === "undefined") return fallback;
+  const val = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return val || fallback;
+}
+
+function readChartTheme() {
+  return {
+    grid: readCssVar("--chart-grid", "#d5dae8"),
+    tick: readCssVar("--chart-tick", "#6b7180"),
+    axisStroke: readCssVar("--chart-axis-stroke", "#14151f"),
+    axisWidth: parseFloat(readCssVar("--chart-axis-width", "2")) || 0,
+    cursor: readCssVar("--chart-cursor", "#eaefff"),
+    barFill: readCssVar("--chart-bar-fill", "#3556f0"),
+    barStroke: readCssVar("--chart-bar-stroke", "#14151f"),
+    barStrokeWidth: parseFloat(readCssVar("--chart-bar-stroke-width", "2")) || 0,
+    barRadius: parseFloat(readCssVar("--chart-bar-radius", "3")) || 3,
+    tooltipBg: readCssVar("--chart-tooltip-bg", "#ffffff"),
+    tooltipBorder: readCssVar("--chart-tooltip-border", "2px solid #14151f"),
+    tooltipShadow: readCssVar("--chart-tooltip-shadow", "3px 3px 0 #14151f"),
+    pieStroke: readCssVar("--chart-pie-stroke", "#14151f"),
+    pieStrokeWidth: parseFloat(readCssVar("--chart-pie-stroke-width", "2")) || 0,
+    statusColors: {
+      Proses: readCssVar("--chart-proses", "#ffff00"),
+      Selesai: readCssVar("--chart-selesai", "#00ff66"),
+      Batal: readCssVar("--chart-batal", "#ff3366"),
+    },
+    statusTextColors: {
+      Proses: readCssVar("--chart-proses-text", "#000000"),
+      Selesai: readCssVar("--chart-selesai-text", "#000000"),
+      Batal: readCssVar("--chart-batal-text", "#000000"),
+    },
+  };
+}
+
+// ThemeSwitcher.jsx mengganti tema dengan dua langkah:
+// 1) set atribut data-app-theme di <html> (sinkron, instan)
+// 2) ganti href pada <link id="app-theme-stylesheet"> ke file CSS tema lain
+//    (ASYNC — browser baru benar-benar menerapkan variabel --chart-* yang
+//    baru setelah file CSS itu selesai di-fetch & di-parse)
+//
+// Kalau kita cuma dengarkan perubahan atribut lalu langsung baca CSS
+// variable, nilainya masih nilai tema LAMA karena stylesheet baru belum
+// selesai dimuat. Makanya di sini kita dengarkan event "load" dari
+// <link> stylesheet itu sendiri, plus fallback observer kalau elemen
+// <link>-nya baru dibuat setelah komponen ini mount duluan.
+function useChartTheme() {
+  const [theme, setTheme] = useState(readChartTheme);
+
+  useEffect(() => {
+    const refresh = () => setTheme(readChartTheme());
+    refresh();
+
+    // Fallback: tetap dengarkan perubahan atribut di <html>, termasuk
+    // data-app-theme yang dipakai ThemeSwitcher. Ini cepat merespons,
+    // walau nilainya bisa saja masih "telat" satu tick kalau stylesheet
+    // belum selesai load — makanya dilengkapi listener load di bawah.
+    const attrObserver = new MutationObserver(refresh);
+    attrObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-app-theme", "class", "data-theme", "style"],
+    });
+
+    // Listener utama: begitu <link id="app-theme-stylesheet"> selesai
+    // memuat file CSS tema yang baru, baca ulang variabelnya.
+    let linkEl = null;
+    const attachLinkListener = () => {
+      const el = document.getElementById("app-theme-stylesheet");
+      if (el && el !== linkEl) {
+        linkEl = el;
+        linkEl.addEventListener("load", refresh);
+      }
+    };
+    attachLinkListener();
+
+    // Kalau RecentActivity mount lebih dulu daripada ThemeSwitcher
+    // (sehingga <link> stylesheet-nya belum ada di <head> saat kode di
+    // atas jalan), pantau <head> supaya listener tetap terpasang begitu
+    // elemennya muncul.
+    const headObserver = new MutationObserver(attachLinkListener);
+    headObserver.observe(document.head, { childList: true });
+
+    return () => {
+      attrObserver.disconnect();
+      headObserver.disconnect();
+      if (linkEl) linkEl.removeEventListener("load", refresh);
+    };
+  }, []);
+
+  return theme;
+}
+
 export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,6 +232,8 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const viewportWidth = useViewportWidth();
   const isMobile = viewportWidth <= 640;
   const isTablet = viewportWidth > 640 && viewportWidth <= 1024;
+
+  const chartTheme = useChartTheme();
 
   useEffect(() => {
     load();
@@ -228,6 +322,14 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const donutOuterRadius = isMobile ? 60 : 72;
   const donutInnerRadius = isMobile ? 40 : 48;
 
+  const tooltipStyle = {
+    border: chartTheme.tooltipBorder,
+    borderRadius: 6,
+    boxShadow: chartTheme.tooltipShadow,
+    fontSize: 12,
+    background: chartTheme.tooltipBg,
+  };
+
   return (
     <div className="card">
       <div className="card-header">
@@ -284,37 +386,35 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                 data={chartData}
                 margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
               >
-                <CartesianGrid vertical={false} stroke="#d5dae8" />
+                <CartesianGrid vertical={false} stroke={chartTheme.grid} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 11, fontWeight: 600, fill: "#6b7180" }}
-                  axisLine={{ stroke: "#14151f", strokeWidth: 2 }}
+                  tick={{ fontSize: 11, fontWeight: 600, fill: chartTheme.tick }}
+                  axisLine={{
+                    stroke: chartTheme.axisStroke,
+                    strokeWidth: chartTheme.axisWidth,
+                  }}
                   tickLine={false}
                   interval={range === "bulanan" ? monthlyTickInterval : 0}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "#6b7180" }}
+                  tick={{ fontSize: 11, fill: chartTheme.tick }}
                   axisLine={false}
                   tickLine={false}
                   width={28}
                 />
                 <Tooltip
-                  cursor={{ fill: "#eaefff" }}
-                  contentStyle={{
-                    border: "2px solid #14151f",
-                    borderRadius: 6,
-                    boxShadow: "3px 3px 0 #14151f",
-                    fontSize: 12,
-                  }}
+                  cursor={{ fill: chartTheme.cursor }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => [`${value} tiket`, ""]}
                 />
                 <Bar
                   dataKey="count"
-                  fill="#3556f0"
-                  stroke="#14151f"
-                  strokeWidth={2}
-                  radius={[3, 3, 0, 0]}
+                  fill={chartTheme.barFill}
+                  stroke={chartTheme.barStroke}
+                  strokeWidth={chartTheme.barStrokeWidth}
+                  radius={[chartTheme.barRadius, chartTheme.barRadius, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -345,8 +445,8 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                     innerRadius={donutInnerRadius}
                     outerRadius={donutOuterRadius}
                     paddingAngle={3}
-                    stroke="#14151f"
-                    strokeWidth={2}
+                    stroke={chartTheme.pieStroke}
+                    strokeWidth={chartTheme.pieStrokeWidth}
                     label={({ value }) => {
                       const percent =
                         totalDalamRange > 0
@@ -357,16 +457,14 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                     labelLine={false}
                   >
                     {statusData.map((entry) => (
-                      <Cell key={entry.name} fill={STATUS_COLORS[entry.name]} />
+                      <Cell
+                        key={entry.name}
+                        fill={chartTheme.statusColors[entry.name]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      border: "2px solid #14151f",
-                      borderRadius: 6,
-                      boxShadow: "3px 3px 0 #14151f",
-                      fontSize: 12,
-                    }}
+                    contentStyle={tooltipStyle}
                     formatter={(value, name) => [`${value} tiket`, name]}
                   />
                   <Legend
@@ -380,7 +478,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                           style={{
                             fontSize: 11,
                             fontWeight: 600,
-                            color: STATUS_TEXT_COLORS[value],
+                            color: chartTheme.statusTextColors[value],
                           }}
                         >
                           {value} ({item ? item.value : 0})
