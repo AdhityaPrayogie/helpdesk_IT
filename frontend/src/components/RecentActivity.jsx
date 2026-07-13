@@ -572,26 +572,47 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
               <p className="muted">Tidak ada data logbook pada tanggal ini.</p>
             ) : (
               <ul className="activity-list">
-                {selectedDateRows.map((r) => (
-                  <li key={r.id} className="activity-item">
-                    <span className={`badge badge-${r.status.toLowerCase()}`}>
-                      {r.status}
-                    </span>
-                    <div className="activity-body">
-                      <div className="activity-title">{r.isi_helpdesk}</div>
-                      <div className="activity-meta">
-                        {r.jam_mulai || "-"}
-                        {r.jam_selesai ? ` – ${r.jam_selesai}` : ""} ·{" "}
-                        {r.nama_pic} · {r.nama_it} · {r.kategori}
-                      </div>
-                      {r.tindakan && (
-                        <div className="activity-meta" style={{ marginTop: 4 }}>
-                          Tindakan: {r.tindakan}
+                {selectedDateRows.map((r) => {
+                  // Hitung estimasi durasi kalau jam_mulai & jam_selesai lengkap dan valid
+                  let durasiText = null;
+                  if (r.jam_mulai && r.jam_selesai) {
+                    const [h1, m1] = r.jam_mulai
+                      .slice(0, 5)
+                      .split(":")
+                      .map(Number);
+                    const [h2, m2] = r.jam_selesai
+                      .slice(0, 5)
+                      .split(":")
+                      .map(Number);
+                    const totalMin = h2 * 60 + m2 - (h1 * 60 + m1);
+                    if (totalMin > 0) durasiText = `${totalMin} menit`;
+                  }
+
+                  return (
+                    <li key={r.id} className="activity-item">
+                      <span className={`badge badge-${r.status.toLowerCase()}`}>
+                        {r.status}
+                      </span>
+                      <div className="activity-body">
+                        <div className="activity-title">{r.isi_helpdesk}</div>
+                        <div className="activity-meta">
+                          {r.jam_mulai || "-"}
+                          {r.jam_selesai ? ` – ${r.jam_selesai}` : ""}
+                          {durasiText ? ` (${durasiText})` : ""} · {r.nama_pic}{" "}
+                          · {r.nama_it} · {r.kategori}
                         </div>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                        {r.tindakan && (
+                          <div
+                            className="activity-meta"
+                            style={{ marginTop: 4 }}
+                          >
+                            Tindakan: {r.tindakan}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

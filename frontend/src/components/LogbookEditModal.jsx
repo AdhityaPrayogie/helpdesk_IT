@@ -164,6 +164,22 @@ export default function LogbookEditModal({ row, onClose, onSaved }) {
               />
             </div>
 
+            {form.jam_mulai &&
+              form.jam_selesai &&
+              form.jam_selesai > form.jam_mulai && (
+                <div className="form-field">
+                  <label>Estimasi Durasi</label>
+                  <div className="duration-preview">
+                    {(() => {
+                      const [h1, m1] = form.jam_mulai.split(":").map(Number);
+                      const [h2, m2] = form.jam_selesai.split(":").map(Number);
+                      const totalMin = h2 * 60 + m2 - (h1 * 60 + m1);
+                      return `${totalMin} menit`;
+                    })()}
+                  </div>
+                </div>
+              )}
+
             <div className="form-field">
               <label>Nama PIC</label>
               <SearchableSelect
