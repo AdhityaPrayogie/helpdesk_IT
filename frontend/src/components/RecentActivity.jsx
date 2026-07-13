@@ -228,6 +228,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const viewportWidth = useViewportWidth();
   const isMobile = viewportWidth <= 640;
@@ -307,12 +308,29 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
     return [current, current - 1, current - 2];
   }, []);
 
-  // Aktivitas Terbaru sekarang ikut rentang yang sama dengan grafik,
-  // diurutkan dari input paling baru, maksimal 6 ditampilkan.
   const recentRows = useMemo(
     () => [...rowsInRange].sort(sortByTerbaru).slice(0, 6),
     [rowsInRange],
   );
+
+  const selectedDateRows = useMemo(() => {
+    if (!selectedDate) return [];
+    return rows
+      .filter((r) => r.tanggal?.slice(0, 10) === selectedDate)
+      .sort(sortByTerbaru);
+  }, [rows, selectedDate]);
+
+  const selectedDateLabel = useMemo(() => {
+    if (!selectedDate) return "";
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    return dateObj.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }, [selectedDate]);
 
   // Di layar sempit, jarak antar tick sumbu-X untuk mode "bulanan" diperlebar
   // supaya label tanggal tidak saling tumpuk.
@@ -389,7 +407,11 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                 <CartesianGrid vertical={false} stroke={chartTheme.grid} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 11, fontWeight: 600, fill: chartTheme.tick }}
+                  tick={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    fill: chartTheme.tick,
+                  }}
                   axisLine={{
                     stroke: chartTheme.axisStroke,
                     strokeWidth: chartTheme.axisWidth,
@@ -415,6 +437,10 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                   stroke={chartTheme.barStroke}
                   strokeWidth={chartTheme.barStrokeWidth}
                   radius={[chartTheme.barRadius, chartTheme.barRadius, 0, 0]}
+                  cursor="pointer"
+                  onClick={(data) => {
+                    if (data?.count > 0) setSelectedDate(data.dateStr);
+                  }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -524,6 +550,53 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
           </li>
         ))}
       </ul>
+      {selectedDate && (
+        <div className="modal-backdrop" onClick={() => setSelectedDate(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{selectedDateLabel}</h2>
+              <button
+                className="modal-close"
+                onClick={() => setSelectedDate(null)}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="muted" style={{ marginTop: -4, marginBottom: 14 }}>
+              {selectedDateRows.length} tiket helpdesk
+            </p>
+
+            {selectedDateRows.length === 0 ? (
+              <p className="muted">Tidak ada data logbook pada tanggal ini.</p>
+            ) : (
+              <ul className="activity-list">
+                {selectedDateRows.map((r) => (
+                  <li key={r.id} className="activity-item">
+                    <span className={`badge badge-${r.status.toLowerCase()}`}>
+                      {r.status}
+                    </span>
+                    <div className="activity-body">
+                      <div className="activity-title">{r.isi_helpdesk}</div>
+                      <div className="activity-meta">
+                        {r.jam_mulai || "-"}
+                        {r.jam_selesai ? ` – ${r.jam_selesai}` : ""} ·{" "}
+                        {r.nama_pic} · {r.nama_it} · {r.kategori}
+                      </div>
+                      {r.tindakan && (
+                        <div className="activity-meta" style={{ marginTop: 4 }}>
+                          Tindakan: {r.tindakan}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
