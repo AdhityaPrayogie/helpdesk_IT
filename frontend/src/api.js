@@ -65,13 +65,7 @@ export const resetUserPassword = (id, password) =>
   api.put(`/users/${id}/password`, { password });
 export const deleteUser = (id) => api.delete(`/users/${id}`);
 
-// Export CSV logbook — lewat axios (bukan window.open) supaya header
-// Authorization/cookie, header ngrok-skip-browser-warning, dan withCredentials
-// ikut terkirim, dan supaya tidak diblokir sebagai popup oleh browser.
-export const downloadLogbookCsv = (start, end, kategoriIdsParam) => {
-  const params = { start, end };
-  if (kategoriIdsParam) params.kategori_ids = kategoriIdsParam;
-  return api.get("/logbook/export/csv", { params, responseType: "blob" });
-};
+export const exportCsvUrl = (start, end) =>
+  `${getBaseUrl()}/logbook/export/csv?start=${start}&end=${end}`;
 
 export default api;
