@@ -1,431 +1,682 @@
-const express = require("express");
-const router = express.Router();
-const pool = require("../db/pool");
-const { Parser } = require("json2csv");
-const { verifyToken } = require("../middleware/auth");
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
+import {
+  getLogbook,
+  deleteLogbook,
+  downloadLogbookCsv,
+  getKategori,
+} from "../api";
+import LogbookEditModal from "./LogbookEditModal";
+import LogbookHistoryModal from "./LogbookHistoryModal";
+import ConfirmModal from "./ConfirmModal";
+import { useToast } from "./Toast";
 
-router.use(verifyToken);
-
-const BASE_SELECT = `
-    SELECT 
-        l.id, l.tanggal, l.jam_mulai, l.jam_selesai, l.total_menit,
-        p.nama AS nama_pic, 
-        GROUP_CONCAT(DISTINCT s.nama ORDER BY s.nama SEPARATOR ', ') AS nama_it,
-        GROUP_CONCAT(DISTINCT s.id ORDER BY s.nama SEPARATOR ',') AS staff_it_ids,
-        k.nama AS kategori,
-        u.nama AS unit_kerja,
-        l.pic_id, l.kategori_id, l.unit_kerja_id,
-        l.isi_helpdesk, l.tindakan, l.status,
-        l.created_at
-    FROM logbook l
-    JOIN pic p ON l.pic_id = p.id
-    LEFT JOIN logbook_staff_it lsi ON lsi.logbook_id = l.id
-    LEFT JOIN staff_it s ON s.id = lsi.staff_it_id
-    JOIN kategori_it k ON l.kategori_id = k.id
-    LEFT JOIN unit_kerja u ON l.unit_kerja_id = u.id
-`;
-
-// Label yang ditampilkan di riwayat untuk tiap field
-const FIELD_LABELS = {
-  tanggal: "Tanggal",
-  jam_mulai: "Jam Mulai",
-  jam_selesai: "Jam Selesai",
-  nama_pic: "Nama PIC",
-  nama_it: "Nama IT",
-  kategori: "Kategori",
-  unit_kerja: "Unit Kerja",
-  isi_helpdesk: "Isi Helpdesk",
-  tindakan: "Tindakan",
-  status: "Status",
+// Hitung tanggal 1 s/d akhir bulan dari bulan+tahun yang dipilih,
+// pakai komponen lokal (bukan toISOString) supaya tidak geser hari.
+const getMonthRange = (year, monthIndex) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  const start = `${year}-${pad(monthIndex + 1)}-01`;
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const end = `${year}-${pad(monthIndex + 1)}-${pad(lastDay)}`;
+  return { start, end };
 };
 
-// Format tanggal jadi "YYYY-MM-DD" pakai komponen lokal (bukan toISOString)
-// supaya konsisten dengan cara tanggal diperlakukan di tempat lain pada app ini.
-function formatTanggal(val) {
-  if (!val) return null;
-  if (typeof val === "string") return val.slice(0, 10);
-  const d = new Date(val);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+const MONTH_NAMES = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
-// Format jam jadi "HH:MM"
-function formatJam(val) {
-  if (!val) return null;
-  return String(val).slice(0, 5);
-}
+// Format total menit jadi "X jam Y mnt" biar gampang dibaca, misal 125 -> "2 jam 5 mnt"
+const formatMenit = (menit) => {
+  const total = Math.round(menit || 0);
+  if (total <= 0) return "0 mnt";
+  const jam = Math.floor(total / 60);
+  const sisaMenit = total % 60;
+  if (jam === 0) return `${sisaMenit} mnt`;
+  if (sisaMenit === 0) return `${jam} jam`;
+  return `${jam} jam ${sisaMenit} mnt`;
+};
 
-// Ambil satu baris logbook lengkap (dengan nama PIC/IT/Kategori/Unit Kerja
-// sudah di-join) dan normalisasi jadi objek datar yang mudah dibandingkan
-// serta enak ditampilkan di riwayat.
-async function getNormalizedRow(conn, id) {
-  const [rows] = await conn.query(
-    `${BASE_SELECT} WHERE l.id = ? GROUP BY l.id`,
-    [id],
+export default function LogbookTable({ refreshTrigger, onDataChanged }) {
+  const toast = useToast();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Filter per bulan (dropdown) — satu-satunya cara filter tanggal sekarang
+  const today = new Date();
+  const [filterMonth, setFilterMonth] = useState(today.getMonth());
+  const [filterYear, setFilterYear] = useState(today.getFullYear());
+  const [filterActive, setFilterActive] = useState(false);
+
+  // Export custom range — default otomatis: tanggal 1 s/d akhir bulan berjalan
+  const currentMonthRange = getMonthRange(
+    today.getFullYear(),
+    today.getMonth(),
   );
-  if (rows.length === 0) return null;
-  const row = rows[0];
-  return {
-    tanggal: formatTanggal(row.tanggal),
-    jam_mulai: formatJam(row.jam_mulai),
-    jam_selesai: formatJam(row.jam_selesai),
-    nama_pic: row.nama_pic || null,
-    nama_it: row.nama_it || null,
-    kategori: row.kategori || null,
-    unit_kerja: row.unit_kerja || null,
-    isi_helpdesk: row.isi_helpdesk || null,
-    tindakan: row.tindakan || null,
-    status: row.status || null,
-  };
-}
+  const [exportStart, setExportStart] = useState(currentMonthRange.start);
+  const [exportEnd, setExportEnd] = useState(currentMonthRange.end);
+  const [exportError, setExportError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
-// Bandingkan dua objek hasil getNormalizedRow, hasilkan daftar field yang berubah
-function diffRows(oldRow, newRow) {
-  const changes = [];
-  for (const field of Object.keys(FIELD_LABELS)) {
-    const before = oldRow ? oldRow[field] : null;
-    const after = newRow[field];
-    if ((before || null) !== (after || null)) {
-      changes.push({
-        field_name: field,
-        label_field: FIELD_LABELS[field],
-        nilai_lama: before,
-        nilai_baru: after,
-      });
-    }
-  }
-  return changes;
-}
+  // Export filter kategori
+  const [kategoriList, setKategoriList] = useState([]);
+  const [selectedKategoriIds, setSelectedKategoriIds] = useState([]);
+  const [kategoriOpen, setKategoriOpen] = useState(false);
+  const kategoriWrapRef = useRef(null); // bungkus label + tombol toggle
+  const kategoriToggleRef = useRef(null); // tombol toggle saja (buat hitung posisi)
+  const kategoriDropdownRef = useRef(null); // panel dropdown yang di-portal
+  const [dropdownPos, setDropdownPos] = useState(null); // {top, left, width}
 
-// Simpan satu batch riwayat (create/update) beserta detail field yang berubah
-async function catatRiwayat(conn, { logbookId, aksi, user, changes }) {
-  if (changes.length === 0) return;
+  const [editingRow, setEditingRow] = useState(null);
+  const [historyTarget, setHistoryTarget] = useState(null);
+  const [search, setSearch] = useState("");
 
-  const [historyResult] = await conn.query(
-    `INSERT INTO logbook_history (logbook_id, aksi, changed_by, changed_by_nama)
-         VALUES (?, ?, ?, ?)`,
-    [logbookId, aksi, user?.id || null, user?.nama || null],
-  );
+  const yearOptions = (() => {
+    const current = today.getFullYear();
+    return [current, current - 1, current - 2, current - 3];
+  })();
 
-  const historyId = historyResult.insertId;
-  const detailValues = changes.map((c) => [
-    historyId,
-    c.field_name,
-    c.label_field,
-    c.nilai_lama,
-    c.nilai_baru,
-  ]);
+  useEffect(() => {
+    loadData();
+  }, [refreshTrigger]);
 
-  await conn.query(
-    `INSERT INTO logbook_history_detail (history_id, field_name, label_field, nilai_lama, nilai_baru)
-         VALUES ?`,
-    [detailValues],
-  );
-}
+  useEffect(() => {
+    loadKategoriList();
+  }, []);
 
-router.get("/", async (req, res) => {
-  try {
-    const { start, end } = req.query;
-    let sql = BASE_SELECT;
-    const params = [];
-    if (start && end) {
-      sql += " WHERE l.tanggal BETWEEN ? AND ?";
-      params.push(start, end);
-    }
-    sql += " GROUP BY l.id ORDER BY l.tanggal DESC, l.id DESC";
-    const [rows] = await pool.query(sql, params);
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Gagal mengambil data logbook" });
-  }
-});
-
-router.post("/", async (req, res) => {
-  const conn = await pool.getConnection();
-  try {
-    const {
-      tanggal,
-      jam_mulai,
-      jam_selesai,
-      pic_id,
-      staff_it_ids,
-      kategori_id,
-      unit_kerja_id,
-      isi_helpdesk,
-      tindakan,
-      status,
-    } = req.body;
-
-    const staffIds = Array.isArray(staff_it_ids)
-      ? staff_it_ids.filter((id) => id !== "" && id != null)
-      : [];
-
-    if (
-      !tanggal ||
-      !pic_id ||
-      staffIds.length === 0 ||
-      !kategori_id ||
-      !isi_helpdesk
-    ) {
-      return res.status(400).json({
-        message:
-          "Tanggal, PIC, minimal 1 Nama IT, Kategori, dan Isi Helpdesk wajib diisi",
-      });
-    }
-
-    const finalStatus = status || "Proses";
-
-    await conn.beginTransaction();
-
-    const [result] = await conn.query(
-      `INSERT INTO logbook (tanggal, jam_mulai, jam_selesai, pic_id, staff_it_id, kategori_id, unit_kerja_id, isi_helpdesk, tindakan, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tanggal,
-        jam_mulai || null,
-        jam_selesai || null,
-        pic_id,
-        staffIds[0],
-        kategori_id,
-        unit_kerja_id || null,
-        isi_helpdesk,
-        tindakan || null,
-        finalStatus,
-      ],
-    );
-
-    const logbookId = result.insertId;
-    const relasiValues = staffIds.map((sid) => [logbookId, sid]);
-    await conn.query(
-      "INSERT INTO logbook_staff_it (logbook_id, staff_it_id) VALUES ?",
-      [relasiValues],
-    );
-
-    // Catat riwayat awal: semua field yang terisi dicatat sebagai "create"
-    const newRow = await getNormalizedRow(conn, logbookId);
-    const initialChanges = diffRows(null, newRow);
-    await catatRiwayat(conn, {
-      logbookId,
-      aksi: "create",
-      user: req.user,
-      changes: initialChanges,
+  // Hitung ulang posisi dropdown berdasarkan posisi tombol toggle di viewport.
+  // Dipakai position: fixed, jadi tidak perlu tambah scrollX/scrollY.
+  const updateDropdownPos = useCallback(() => {
+    const btn = kategoriToggleRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    setDropdownPos({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: Math.max(rect.width, 240),
     });
+  }, []);
 
-    await conn.commit();
-    res
-      .status(201)
-      .json({ id: logbookId, message: "Logbook berhasil disimpan" });
-  } catch (err) {
-    await conn.rollback();
-    console.error(err);
-    res.status(500).json({ message: "Gagal menyimpan logbook" });
-  } finally {
-    conn.release();
-  }
-});
-
-router.put("/:id", async (req, res) => {
-  const conn = await pool.getConnection();
-  try {
-    const {
-      tanggal,
-      jam_mulai,
-      jam_selesai,
-      pic_id,
-      staff_it_ids,
-      kategori_id,
-      unit_kerja_id,
-      isi_helpdesk,
-      tindakan,
-      status,
-    } = req.body;
-
-    const staffIds = Array.isArray(staff_it_ids)
-      ? staff_it_ids.filter((id) => id !== "" && id != null)
-      : [];
-
-    if (
-      !tanggal ||
-      !pic_id ||
-      staffIds.length === 0 ||
-      !kategori_id ||
-      !isi_helpdesk
-    ) {
-      return res.status(400).json({
-        message:
-          "Tanggal, PIC, minimal 1 Nama IT, Kategori, dan Isi Helpdesk wajib diisi",
-      });
-    }
-
-    await conn.beginTransaction();
-
-    // Kunci baris & ambil kondisi sebelum diubah (lengkap dengan nama-nama join)
-    await conn.query("SELECT id FROM logbook WHERE id = ? FOR UPDATE", [
-      req.params.id,
-    ]);
-    const oldRow = await getNormalizedRow(conn, req.params.id);
-    if (!oldRow) {
-      await conn.rollback();
-      return res.status(404).json({ message: "Logbook tidak ditemukan" });
-    }
-
-    await conn.query(
-      `UPDATE logbook SET tanggal=?, jam_mulai=?, jam_selesai=?, pic_id=?, staff_it_id=?, kategori_id=?, unit_kerja_id=?, isi_helpdesk=?, tindakan=?, status=?
-             WHERE id=?`,
-      [
-        tanggal,
-        jam_mulai || null,
-        jam_selesai || null,
-        pic_id,
-        staffIds[0],
-        kategori_id,
-        unit_kerja_id || null,
-        isi_helpdesk,
-        tindakan || null,
-        status,
-        req.params.id,
-      ],
-    );
-
-    await conn.query("DELETE FROM logbook_staff_it WHERE logbook_id = ?", [
-      req.params.id,
-    ]);
-    const relasiValues = staffIds.map((sid) => [req.params.id, sid]);
-    await conn.query(
-      "INSERT INTO logbook_staff_it (logbook_id, staff_it_id) VALUES ?",
-      [relasiValues],
-    );
-
-    // Bandingkan kondisi sebelum & sesudah, catat semua field yang berubah
-    const newRow = await getNormalizedRow(conn, req.params.id);
-    const changes = diffRows(oldRow, newRow);
-    await catatRiwayat(conn, {
-      logbookId: req.params.id,
-      aksi: "update",
-      user: req.user,
-      changes,
-    });
-
-    await conn.commit();
-    res.json({ message: "Logbook berhasil diperbarui" });
-  } catch (err) {
-    await conn.rollback();
-    console.error(err);
-    res.status(500).json({ message: "Gagal memperbarui logbook" });
-  } finally {
-    conn.release();
-  }
-});
-
-router.delete("/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM logbook WHERE id = ?", [req.params.id]);
-    res.json({ message: "Logbook berhasil dihapus" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Gagal menghapus logbook" });
-  }
-});
-
-router.get("/:id/history", async (req, res) => {
-  try {
-    const [historyRows] = await pool.query(
-      `SELECT id, aksi, changed_by_nama, created_at
-             FROM logbook_history
-             WHERE logbook_id = ?
-             ORDER BY created_at ASC, id ASC`,
-      [req.params.id],
-    );
-
-    if (historyRows.length === 0) {
-      return res.json([]);
-    }
-
-    const historyIds = historyRows.map((h) => h.id);
-    const [detailRows] = await pool.query(
-      `SELECT history_id, field_name, label_field, nilai_lama, nilai_baru
-             FROM logbook_history_detail
-             WHERE history_id IN (?)
-             ORDER BY id ASC`,
-      [historyIds],
-    );
-
-    const detailsByHistory = {};
-    detailRows.forEach((d) => {
-      if (!detailsByHistory[d.history_id]) detailsByHistory[d.history_id] = [];
-      detailsByHistory[d.history_id].push(d);
-    });
-
-    const result = historyRows.map((h) => ({
-      id: h.id,
-      aksi: h.aksi,
-      changed_by_nama: h.changed_by_nama,
-      created_at: h.created_at,
-      details: detailsByHistory[h.id] || [],
-    }));
-
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Gagal mengambil riwayat logbook" });
-  }
-});
-
-router.get("/export/csv", async (req, res) => {
-  try {
-    const { start, end, kategori_ids } = req.query;
-    if (!start || !end) {
-      return res
-        .status(400)
-        .json({ message: "Parameter start dan end wajib diisi" });
-    }
-
-    let sql = `${BASE_SELECT} WHERE l.tanggal BETWEEN ? AND ?`;
-    const params = [start, end];
-
-    if (kategori_ids) {
-      const ids = String(kategori_ids)
-        .split(",")
-        .map((id) => id.trim())
-        .filter((id) => id !== "" && !Number.isNaN(Number(id)));
-
-      if (ids.length > 0) {
-        sql += ` AND l.kategori_id IN (${ids.map(() => "?").join(",")})`;
-        params.push(...ids);
+  const handleToggleKategoriOpen = () => {
+    setKategoriOpen((o) => {
+      const next = !o;
+      if (next) {
+        // hitung posisi tepat sebelum ditampilkan
+        requestAnimationFrame(updateDropdownPos);
       }
+      return next;
+    });
+  };
+
+  // Tutup dropdown kategori saat klik di luar tombol toggle MAUPUN di luar
+  // panel dropdown (yang sekarang di-portal ke document.body, jadi bukan
+  // lagi anak DOM dari kategoriWrapRef).
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const clickedToggle =
+        kategoriWrapRef.current && kategoriWrapRef.current.contains(e.target);
+      const clickedDropdown =
+        kategoriDropdownRef.current &&
+        kategoriDropdownRef.current.contains(e.target);
+      if (!clickedToggle && !clickedDropdown) {
+        setKategoriOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Jaga posisi dropdown tetap menempel ke tombolnya saat halaman di-scroll
+  // atau ukuran window berubah (mis. resize, buka devtools, dsb).
+  useEffect(() => {
+    if (!kategoriOpen) return;
+    window.addEventListener("scroll", updateDropdownPos, true);
+    window.addEventListener("resize", updateDropdownPos);
+    return () => {
+      window.removeEventListener("scroll", updateDropdownPos, true);
+      window.removeEventListener("resize", updateDropdownPos);
+    };
+  }, [kategoriOpen, updateDropdownPos]);
+
+  const loadData = async (params = {}) => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await getLogbook(params);
+      setData(res.data);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Gagal memuat data logbook.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadKategoriList = async () => {
+    try {
+      const res = await getKategori(true);
+      setKategoriList(res.data);
+      // default: semua kategori terpilih (export semua, seperti perilaku sebelumnya)
+      setSelectedKategoriIds(res.data.map((k) => k.id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleFilterBulan = (e) => {
+    e.preventDefault();
+    const { start, end } = getMonthRange(filterYear, filterMonth);
+    setFilterActive(true);
+    loadData({ start, end });
+  };
+
+  const handleTampilkanSemua = () => {
+    setFilterActive(false);
+    loadData({});
+  };
+
+  const handleDelete = (row) => {
+    setDeleteTarget(row);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteLogbook(deleteTarget.id);
+      loadData(filterActive ? getMonthRange(filterYear, filterMonth) : {});
+      onDataChanged?.();
+      toast.success("Data logbook berhasil dihapus.");
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || "Gagal menghapus data logbook.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleKategori = (id) => {
+    setSelectedKategoriIds((prev) =>
+      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id],
+    );
+  };
+
+  const handleSelectAllKategori = () => {
+    setSelectedKategoriIds(kategoriList.map((k) => k.id));
+  };
+
+  const handleClearAllKategori = () => {
+    setSelectedKategoriIds([]);
+  };
+
+  const kategoriSummaryLabel = useMemo(() => {
+    if (kategoriList.length === 0) return "Memuat kategori...";
+    if (selectedKategoriIds.length === 0) return "Tidak ada kategori dipilih";
+    if (selectedKategoriIds.length === kategoriList.length)
+      return "Semua Kategori";
+    if (selectedKategoriIds.length === 1) {
+      const k = kategoriList.find((k) => k.id === selectedKategoriIds[0]);
+      return k ? k.nama : "1 kategori dipilih";
+    }
+    return `${selectedKategoriIds.length} kategori dipilih`;
+  }, [selectedKategoriIds, kategoriList]);
+
+  // Ringkasan data yang sedang tampil: total helpdesk, total durasi, rata-rata per helpdesk
+  const summaryStats = useMemo(() => {
+    const totalHelpdesk = data.length;
+    const totalMenit = data.reduce(
+      (sum, row) => sum + (row.total_menit || 0),
+      0,
+    );
+    const rataRata = totalHelpdesk > 0 ? totalMenit / totalHelpdesk : 0;
+    return { totalHelpdesk, totalMenit, rataRata };
+  }, [data]);
+
+  // Search tabel berdasarkan tanggal, kategori, atau unit kerja (client-side, tidak mengubah ringkasan di atas)
+  const searchQuery = search.trim().toLowerCase();
+  const filteredData = useMemo(() => {
+    if (!searchQuery) return data;
+    return data.filter((row) => {
+      const tanggal = (row.tanggal || "").slice(0, 10).toLowerCase();
+      const kategori = (row.kategori || "").toLowerCase();
+      const unitKerja = (row.unit_kerja || "").toLowerCase();
+      return (
+        tanggal.includes(searchQuery) ||
+        kategori.includes(searchQuery) ||
+        unitKerja.includes(searchQuery)
+      );
+    });
+  }, [data, searchQuery]);
+
+  const handleExport = async () => {
+    setExportError("");
+    if (!exportStart || !exportEnd) {
+      setExportError("Dari Tanggal dan Sampai Tanggal wajib diisi.");
+      return;
+    }
+    if (exportEnd < exportStart) {
+      setExportError("Sampai Tanggal harus sama atau setelah Dari Tanggal.");
+      return;
+    }
+    if (selectedKategoriIds.length === 0) {
+      setExportError("Pilih minimal satu kategori untuk diexport.");
+      return;
     }
 
-    sql += " GROUP BY l.id ORDER BY l.tanggal ASC";
+    // Kalau tidak semua kategori dipilih, kirim daftar id kategori yang dipilih.
+    // Kalau semua dipilih, tidak perlu kirim param (export semua seperti biasa).
+    let idsParam;
+    if (
+      kategoriList.length > 0 &&
+      selectedKategoriIds.length < kategoriList.length
+    ) {
+      idsParam = selectedKategoriIds.join(",");
+    }
 
-    const [rows] = await pool.query(sql, params);
+    setExporting(true);
+    try {
+      // Export sekarang lewat axios (bukan window.open) supaya header auth,
+      // cookie, dan header ngrok-skip-browser-warning ikut terkirim, dan
+      // supaya tidak diblokir sebagai popup oleh browser.
+      const res = await downloadLogbookCsv(exportStart, exportEnd, idsParam);
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `laporan_logbook_${exportStart}_sd_${exportEnd}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error(err);
+      setExportError(
+        err.response?.data?.message || "Gagal mengexport data logbook.",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
-    const fields = [
-      { label: "Tanggal", value: "tanggal" },
-      { label: "Jam Mulai", value: "jam_mulai" },
-      { label: "Jam Selesai", value: "jam_selesai" },
-      { label: "Total Menit", value: "total_menit" },
-      { label: "Nama PIC", value: "nama_pic" },
-      { label: "Nama IT", value: "nama_it" },
-      { label: "Kategori", value: "kategori" },
-      { label: "Unit Kerja", value: "unit_kerja" },
-      { label: "Isi Helpdesk", value: "isi_helpdesk" },
-      { label: "Tindakan", value: "tindakan" },
-      { label: "Status", value: "status" },
-    ];
-    const parser = new Parser({ fields });
-    const csv = parser.parse(rows);
+  const handleEditSaved = () => {
+    loadData(filterActive ? getMonthRange(filterYear, filterMonth) : {});
+    onDataChanged?.();
+  };
 
-    const filename = `laporan_logbook_${start}_sd_${end}.csv`;
-    res.header("Content-Type", "text/csv");
-    res.attachment(filename);
-    res.send(csv);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Gagal membuat file CSV" });
-  }
-});
+  return (
+    <div className="logbook-table-wrap">
+      <h2>Data Logbook Helpdesk</h2>
 
-module.exports = router;
+      <form className="filter-bar" onSubmit={handleFilterBulan}>
+        <div className="filter-field">
+          <label>Filter per Bulan</label>
+          <select
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(Number(e.target.value))}
+          >
+            {MONTH_NAMES.map((name, idx) => (
+              <option key={name} value={idx}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-field">
+          <label>Tahun</label>
+          <select
+            value={filterYear}
+            onChange={(e) => setFilterYear(Number(e.target.value))}
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit">Tampilkan Bulan Ini</button>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={handleTampilkanSemua}
+        >
+          Tampilkan Semua
+        </button>
+      </form>
+
+      <div className="export-bar">
+        <div className="filter-field">
+          <label>Dari Tanggal</label>
+          <input
+            type="date"
+            value={exportStart}
+            onChange={(e) => setExportStart(e.target.value)}
+          />
+        </div>
+        <div className="filter-field">
+          <label>Sampai Tanggal</label>
+          <input
+            type="date"
+            value={exportEnd}
+            onChange={(e) => setExportEnd(e.target.value)}
+          />
+        </div>
+
+        <div
+          className="filter-field export-kategori-wrap"
+          ref={kategoriWrapRef}
+        >
+          <label>Kategori</label>
+          <button
+            type="button"
+            ref={kategoriToggleRef}
+            className="export-kategori-toggle"
+            onClick={handleToggleKategoriOpen}
+          >
+            <span className="export-kategori-toggle-text">
+              {kategoriSummaryLabel}
+            </span>
+            <span
+              className={`export-kategori-chevron ${
+                kategoriOpen ? "is-open" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+
+          {/* Dropdown di-portal langsung ke document.body supaya tidak
+              terjebak di dalam stacking context manapun (mis. elemen yang
+              memakai backdrop-filter pada tema Glassmorphism), sehingga
+              selalu bisa diklik di kedua tema. Posisinya dihitung manual
+              dari posisi tombol toggle di atas. */}
+          {kategoriOpen &&
+            dropdownPos &&
+            createPortal(
+              <div
+                ref={kategoriDropdownRef}
+                className="export-kategori-dropdown"
+                style={{
+                  position: "fixed",
+                  top: dropdownPos.top,
+                  left: dropdownPos.left,
+                  width: dropdownPos.width,
+                }}
+              >
+                <div className="export-kategori-actions">
+                  <button type="button" onClick={handleSelectAllKategori}>
+                    Pilih Semua
+                  </button>
+                  <button type="button" onClick={handleClearAllKategori}>
+                    Kosongkan
+                  </button>
+                </div>
+                {kategoriList.length === 0 && (
+                  <div className="export-kategori-empty">
+                    Belum ada data kategori.
+                  </div>
+                )}
+                {kategoriList.map((k) => (
+                  <label key={k.id} className="export-kategori-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedKategoriIds.includes(k.id)}
+                      onChange={() => toggleKategori(k.id)}
+                    />
+                    <span>
+                      {k.nama}
+                      {!k.aktif && (
+                        <span className="badge-inactive">Nonaktif</span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>,
+              document.body,
+            )}
+        </div>
+
+        <button type="button" onClick={handleExport} disabled={exporting}>
+          {exporting ? "Mengexport..." : "Export CSV"}
+        </button>
+      </div>
+      {exportError && <div className="alert alert-error">{exportError}</div>}
+      <p className="hint">
+        Export CSV mengambil data logbook di antara Dari Tanggal dan Sampai
+        Tanggal, dibatasi hanya untuk kategori yang dipilih di atas.
+      </p>
+
+      {errorMsg && <div className="alert alert-error">{errorMsg}</div>}
+      {loading && <p>Memuat data...</p>}
+
+      {filterActive && !loading && !errorMsg && (
+        <div className="logbook-summary">
+          <div className="summary-card">
+            <div className="summary-value">{summaryStats.totalHelpdesk}</div>
+            <div className="summary-label">
+              Total Helpdesk · {MONTH_NAMES[filterMonth]} {filterYear}
+            </div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-value">
+              {formatMenit(summaryStats.totalMenit)}
+              <span className="summary-subvalue">
+                ({Math.round(summaryStats.totalMenit || 0)} mnt)
+              </span>
+            </div>
+            <div className="summary-label">Total Durasi</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-value">
+              {formatMenit(summaryStats.rataRata)}
+            </div>
+            <div className="summary-label">Rata-rata / Helpdesk</div>
+          </div>
+        </div>
+      )}
+
+      {!loading && data.length > 0 && (
+        <div className="master-search-wrap">
+          <span className="master-search-icon">⌕</span>
+          <input
+            type="text"
+            className="master-search-input"
+            placeholder="Cari berdasarkan tanggal, kategori, atau unit kerja..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              type="button"
+              className="master-search-clear"
+              onClick={() => setSearch("")}
+              aria-label="Bersihkan pencarian"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
+      {!loading && data.length > 0 && filteredData.length === 0 && (
+        <p className="muted">Tidak ada hasil untuk "{search}".</p>
+      )}
+
+      <div className="table-scroll">
+        <table>
+          <colgroup>
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "14%" }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Jam Mulai</th>
+              <th>Jam Selesai</th>
+              <th>Durasi (menit)</th>
+              <th>Nama PIC</th>
+              <th>Nama IT</th>
+              <th>Kategori</th>
+              <th>Unit Kerja</th>
+              <th>Isi Helpdesk</th>
+              <th>Tindakan</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.length === 0 && !loading && (
+              <tr>
+                <td colSpan={12} className="empty">
+                  Belum ada data logbook.
+                </td>
+              </tr>
+            )}
+            {filteredData.map((row) => (
+              <tr key={row.id}>
+                <td data-label="Tanggal" className="cell-nowrap">
+                  {row.tanggal?.slice(0, 10)}
+                </td>
+                <td data-label="Jam Mulai" className="cell-nowrap">
+                  {row.jam_mulai ? row.jam_mulai.slice(0, 5) : "-"}
+                </td>
+                <td data-label="Jam Selesai" className="cell-nowrap">
+                  {row.jam_selesai ? row.jam_selesai.slice(0, 5) : "-"}
+                </td>
+                <td data-label="Durasi" className="cell-nowrap">
+                  {row.total_menit != null ? `${row.total_menit} mnt` : "-"}
+                </td>
+                <td
+                  data-label="Nama PIC"
+                  className="cell-truncate"
+                  title={row.nama_pic}
+                >
+                  {row.nama_pic}
+                </td>
+                <td
+                  data-label="Nama IT"
+                  className="cell-truncate"
+                  title={row.nama_it}
+                >
+                  {row.nama_it}
+                </td>
+                <td
+                  data-label="Kategori"
+                  className="cell-truncate"
+                  title={row.kategori}
+                >
+                  {row.kategori}
+                </td>
+                <td
+                  data-label="Unit Kerja"
+                  className="cell-truncate"
+                  title={row.unit_kerja || "-"}
+                >
+                  {row.unit_kerja || "-"}
+                </td>
+                <td
+                  data-label="Isi Helpdesk"
+                  className="cell-clamp"
+                  title={row.isi_helpdesk}
+                >
+                  {row.isi_helpdesk}
+                </td>
+                <td
+                  data-label="Tindakan"
+                  className="cell-clamp"
+                  title={row.tindakan || "-"}
+                >
+                  {row.tindakan || "-"}
+                </td>
+                <td data-label="Status" className="cell-nowrap">
+                  <span className={`badge badge-${row.status.toLowerCase()}`}>
+                    {row.status}
+                  </span>
+                </td>
+                <td data-label="Aksi" className="cell-aksi">
+                  <div className="action-btns">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setEditingRow(row)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setHistoryTarget(row.id)}
+                    >
+                      Riwayat
+                    </button>
+                    <button
+                      className="btn-danger"
+                      onClick={() => handleDelete(row)}
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editingRow && (
+        <LogbookEditModal
+          row={editingRow}
+          onClose={() => setEditingRow(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
+
+      {historyTarget && (
+        <LogbookHistoryModal
+          logbookId={historyTarget}
+          onClose={() => setHistoryTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Hapus Logbook"
+          message={`Hapus data logbook tanggal ${deleteTarget.tanggal?.slice(
+            0,
+            10,
+          )} (${deleteTarget.isi_helpdesk?.slice(0, 40)}${
+            deleteTarget.isi_helpdesk?.length > 40 ? "..." : ""
+          })? Tindakan ini tidak bisa dibatalkan.`}
+          confirmLabel="Ya, Hapus"
+          danger
+          loading={deleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+    </div>
+  );
+}
