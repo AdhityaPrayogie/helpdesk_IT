@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { getLogbook, deleteLogbook, exportCsvUrl, getKategori } from "../api";
+import {
+  getLogbook,
+  deleteLogbook,
+  downloadLogbookCsv,
+  getKategori,
+} from "../api";
 import LogbookEditModal from "./LogbookEditModal";
 import LogbookHistoryModal from "./LogbookHistoryModal";
 import ConfirmModal from "./ConfirmModal";
