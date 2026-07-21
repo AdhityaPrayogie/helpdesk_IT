@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import {
   getLogbook,
   deleteLogbook,
-  downloadLogbookCsv,
+  downloadLogbookXlsx,
   getKategori,
 } from "../api";
 import LogbookEditModal from "./LogbookEditModal";
@@ -294,11 +294,11 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
       // Export sekarang lewat axios (bukan window.open) supaya header auth,
       // cookie, dan header ngrok-skip-browser-warning ikut terkirim, dan
       // supaya tidak diblokir sebagai popup oleh browser.
-      const res = await downloadLogbookCsv(exportStart, exportEnd, idsParam);
+      const res = await downloadLogbookXlsx(exportStart, exportEnd, idsParam);
       const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `laporan_logbook_${exportStart}_sd_${exportEnd}.csv`;
+      a.download = `Laporan_Logbook_${exportStart}_sd_${exportEnd}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
