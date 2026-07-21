@@ -35,7 +35,8 @@ export default function LogbookEditModal({ row, onClose, onSaved }) {
     unit_kerja_id: row.unit_kerja_id || "",
     isi_helpdesk: row.isi_helpdesk || "",
     tindakan: row.tindakan || "",
-    status: row.status || "proses",
+    status: row.status || "Proses",
+    jenis_pelayanan: row.jenis_pelayanan || "",
   });
 
   useEffect(() => {
@@ -80,10 +81,11 @@ export default function LogbookEditModal({ row, onClose, onSaved }) {
       !form.pic_id ||
       form.staff_it_ids.length === 0 ||
       !form.kategori_id ||
-      !form.isi_helpdesk.trim()
+      !form.isi_helpdesk.trim() ||
+      !form.jenis_pelayanan
     ) {
       setErrorMsg(
-        "Nama PIC, minimal 1 Nama IT, Kategori, dan Isi Helpdesk wajib diisi.",
+        "Nama PIC, minimal 1 Nama IT, Kategori, Isi Helpdesk, dan Jenis Pelayanan wajib diisi.",
       );
       return;
     }
@@ -220,6 +222,20 @@ export default function LogbookEditModal({ row, onClose, onSaved }) {
                 onChange={handleSelectChange("unit_kerja_id")}
                 placeholder="Cari Unit Kerja..."
               />
+            </div>
+
+            <div className="form-field">
+              <label>Jenis Pelayanan</label>
+              <select
+                name="jenis_pelayanan"
+                value={form.jenis_pelayanan}
+                onChange={handleChange}
+                required
+              >
+                <option value="">-- Pilih --</option>
+                <option value="Pelayanan">Pelayanan</option>
+                <option value="Non Pelayanan">Non Pelayanan</option>
+              </select>
             </div>
 
             <div className="form-field">

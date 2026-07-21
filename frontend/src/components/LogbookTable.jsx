@@ -248,7 +248,8 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
     return { totalHelpdesk, totalMenit, rataRata };
   }, [data]);
 
-  // Search tabel berdasarkan tanggal, kategori, atau unit kerja (client-side, tidak mengubah ringkasan di atas)
+  // Search tabel berdasarkan tanggal, kategori, unit kerja, atau jenis pelayanan
+  // (client-side, tidak mengubah ringkasan di atas)
   const searchQuery = search.trim().toLowerCase();
   const filteredData = useMemo(() => {
     if (!searchQuery) return data;
@@ -256,10 +257,12 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
       const tanggal = (row.tanggal || "").slice(0, 10).toLowerCase();
       const kategori = (row.kategori || "").toLowerCase();
       const unitKerja = (row.unit_kerja || "").toLowerCase();
+      const jenisPelayanan = (row.jenis_pelayanan || "").toLowerCase();
       return (
         tanggal.includes(searchQuery) ||
         kategori.includes(searchQuery) ||
-        unitKerja.includes(searchQuery)
+        unitKerja.includes(searchQuery) ||
+        jenisPelayanan.includes(searchQuery)
       );
     });
   }, [data, searchQuery]);
@@ -496,7 +499,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
           <input
             type="text"
             className="master-search-input"
-            placeholder="Cari berdasarkan tanggal, kategori, atau unit kerja..."
+            placeholder="Cari berdasarkan tanggal, kategori, unit kerja, atau jenis pelayanan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -523,14 +526,15 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
             <col style={{ width: "7%" }} />
             <col style={{ width: "6%" }} />
             <col style={{ width: "6%" }} />
+            <col style={{ width: "6%" }} />
             <col style={{ width: "7%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "8%" }} />
             <col style={{ width: "7%" }} />
             <col style={{ width: "6%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "11%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "9%" }} />
             <col style={{ width: "6%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "8%" }} />
             <col style={{ width: "14%" }} />
           </colgroup>
           <thead>
@@ -543,6 +547,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
               <th>Nama IT</th>
               <th>Kategori</th>
               <th>Unit Kerja</th>
+              <th>Jenis Pelayanan</th>
               <th>Isi Helpdesk</th>
               <th>Tindakan</th>
               <th>Status</th>
@@ -552,7 +557,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
           <tbody>
             {data.length === 0 && !loading && (
               <tr>
-                <td colSpan={12} className="empty">
+                <td colSpan={13} className="empty">
                   Belum ada data logbook.
                 </td>
               </tr>
@@ -598,6 +603,9 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
                   title={row.unit_kerja || "-"}
                 >
                   {row.unit_kerja || "-"}
+                </td>
+                <td data-label="Jenis Pelayanan" className="cell-nowrap">
+                  {row.jenis_pelayanan || "-"}
                 </td>
                 <td
                   data-label="Isi Helpdesk"
