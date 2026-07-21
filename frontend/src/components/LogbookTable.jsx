@@ -69,6 +69,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
   const [exportStart, setExportStart] = useState(currentMonthRange.start);
   const [exportEnd, setExportEnd] = useState(currentMonthRange.end);
   const [exportError, setExportError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   // Export filter kategori
   const [kategoriList, setKategoriList] = useState([]);
@@ -263,7 +264,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
     });
   }, [data, searchQuery]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setExportError("");
     if (!exportStart || !exportEnd) {
       setExportError("Dari Tanggal dan Sampai Tanggal wajib diisi.");
@@ -278,19 +279,38 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
       return;
     }
 
-    let url = exportCsvUrl(exportStart, exportEnd);
-
     // Kalau tidak semua kategori dipilih, kirim daftar id kategori yang dipilih.
     // Kalau semua dipilih, tidak perlu kirim param (export semua seperti biasa).
+    let idsParam;
     if (
       kategoriList.length > 0 &&
       selectedKategoriIds.length < kategoriList.length
     ) {
-      const idsParam = selectedKategoriIds.join(",");
-      url += `${url.includes("?") ? "&" : "?"}kategori_ids=${encodeURIComponent(idsParam)}`;
+      idsParam = selectedKategoriIds.join(",");
     }
 
-    window.open(url, "_blank");
+    setExporting(true);
+    try {
+      // Export sekarang lewat axios (bukan window.open) supaya header auth,
+      // cookie, dan header ngrok-skip-browser-warning ikut terkirim, dan
+      // supaya tidak diblokir sebagai popup oleh browser.
+      const res = await downloadLogbookCsv(exportStart, exportEnd, idsParam);
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `laporan_logbook_${exportStart}_sd_${exportEnd}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error(err);
+      setExportError(
+        err.response?.data?.message || "Gagal mengexport data logbook.",
+      );
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleEditSaved = () => {
@@ -431,8 +451,8 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
             )}
         </div>
 
-        <button type="button" onClick={handleExport}>
-          Export CSV
+        <button type="button" onClick={handleExport} disabled={exporting}>
+          {exporting ? "Mengexport..." : "Export CSV"}
         </button>
       </div>
       {exportError && <div className="alert alert-error">{exportError}</div>}
