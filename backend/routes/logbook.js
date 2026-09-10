@@ -176,7 +176,7 @@ async function catatRiwayat(conn, { logbookId, aksi, user, changes }) {
 
 router.get("/", async (req, res) => {
   try {
-    const { start, end } = req.query;
+    const { start, end, limit, offset } = req.query;
     let sql = BASE_SELECT;
     const params = [];
     if (start && end) {
@@ -184,6 +184,22 @@ router.get("/", async (req, res) => {
       params.push(start, end);
     }
     sql += " GROUP BY l.id ORDER BY l.tanggal DESC, l.id DESC";
+
+    // Add pagination
+    if (limit !== undefined && offset !== undefined) {
+      const parseLimit = parseInt(limit);
+      const parseOffset = parseInt(offset);
+      if (
+        !isNaN(parseLimit) &&
+        !isNaN(parseOffset) &&
+        parseLimit > 0 &&
+        parseOffset >= 0
+      ) {
+        sql += " LIMIT ? OFFSET ?";
+        params.push(parseLimit, parseOffset);
+      }
+    }
+    
     const [rows] = await pool.query(sql, params);
     res.json(rows);
   } catch (err) {

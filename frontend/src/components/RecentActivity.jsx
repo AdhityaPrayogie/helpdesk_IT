@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -9,7 +10,6 @@ import {
   CartesianGrid,
   PieChart,
   Pie,
-  Cell,
   Legend,
 } from "recharts";
 import { getLogbook } from "../api";
@@ -138,18 +138,14 @@ function readChartTheme() {
   return {
     grid: readCssVar("--chart-grid", "#d5dae8"),
     tick: readCssVar("--chart-tick", "#6b7180"),
-    axisStroke: readCssVar("--chart-axis-stroke", "#14151f"),
-    axisWidth: parseFloat(readCssVar("--chart-axis-width", "2")) || 0,
-    cursor: readCssVar("--chart-cursor", "#eaefff"),
     barFill: readCssVar("--chart-bar-fill", "#3556f0"),
-    barStroke: readCssVar("--chart-bar-stroke", "#14151f"),
-    barStrokeWidth: parseFloat(readCssVar("--chart-bar-stroke-width", "2")) || 0,
-    barRadius: parseFloat(readCssVar("--chart-bar-radius", "3")) || 3,
-    tooltipBg: readCssVar("--chart-tooltip-bg", "#ffffff"),
-    tooltipBorder: readCssVar("--chart-tooltip-border", "2px solid #14151f"),
-    tooltipShadow: readCssVar("--chart-tooltip-shadow", "3px 3px 0 #14151f"),
+    barStroke: readCssVar("--chart-bar-stroke", "transparent"),
+    barStrokeWidth:
+      parseFloat(readCssVar("--chart-bar-stroke-width", "0")) || 0,
+    barRadius: parseFloat(readCssVar("--chart-bar-radius", "6")) || 6,
     pieStroke: readCssVar("--chart-pie-stroke", "#14151f"),
-    pieStrokeWidth: parseFloat(readCssVar("--chart-pie-stroke-width", "2")) || 0,
+    pieStrokeWidth:
+      parseFloat(readCssVar("--chart-pie-stroke-width", "2")) || 0,
     statusColors: {
       Proses: readCssVar("--chart-proses", "#ffff00"),
       Selesai: readCssVar("--chart-selesai", "#00ff66"),
@@ -181,18 +177,12 @@ function useChartTheme() {
     const refresh = () => setTheme(readChartTheme());
     refresh();
 
-    // Fallback: tetap dengarkan perubahan atribut di <html>, termasuk
-    // data-app-theme yang dipakai ThemeSwitcher. Ini cepat merespons,
-    // walau nilainya bisa saja masih "telat" satu tick kalau stylesheet
-    // belum selesai load — makanya dilengkapi listener load di bawah.
     const attrObserver = new MutationObserver(refresh);
     attrObserver.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["data-app-theme", "class", "data-theme", "style"],
     });
 
-    // Listener utama: begitu <link id="app-theme-stylesheet"> selesai
-    // memuat file CSS tema yang baru, baca ulang variabelnya.
     let linkEl = null;
     const attachLinkListener = () => {
       const el = document.getElementById("app-theme-stylesheet");
@@ -203,10 +193,6 @@ function useChartTheme() {
     };
     attachLinkListener();
 
-    // Kalau RecentActivity mount lebih dulu daripada ThemeSwitcher
-    // (sehingga <link> stylesheet-nya belum ada di <head> saat kode di
-    // atas jalan), pantau <head> supaya listener tetap terpasang begitu
-    // elemennya muncul.
     const headObserver = new MutationObserver(attachLinkListener);
     headObserver.observe(document.head, { childList: true });
 
@@ -220,6 +206,63 @@ function useChartTheme() {
   return theme;
 }
 
+// ---------------------------------------------------------------------
+// CHART TOOLTIP & LEGEND — gaya "shadcn chart": kartu kecil rounded,
+// dot warna per item, label tebal, nilai rata kanan. Warna kartu/border
+// diambil dari class CSS (.chart-tooltip dkk), bukan inline style, jadi
+// otomatis ikut tema lewat --chart-tooltip-* di style.css.
+// ---------------------------------------------------------------------
+function ChartTooltipCard({ active, payload, label, valueSuffix = "" }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="chart-tooltip">
+      {label && <div className="chart-tooltip-label">{label}</div>}
+      <div className="chart-tooltip-body">
+        {payload.map((item, idx) => (
+          <div
+            key={item.dataKey || item.name || idx}
+            className="chart-tooltip-row"
+          >
+            <span
+              className="chart-tooltip-dot"
+              style={{
+                background: item.color || item.fill || item.payload?.fill,
+              }}
+            />
+            <span className="chart-tooltip-name">{item.name}</span>
+            <span className="chart-tooltip-value">
+              {item.value}
+              {valueSuffix}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChartLegendList({ data, colors, textColors }) {
+  return (
+    <div className="chart-legend">
+      {data.map((item) => (
+        <div key={item.name} className="chart-legend-item">
+          <span
+            className="chart-legend-dot"
+            style={{ background: colors[item.name] }}
+          />
+          <span
+            className="chart-legend-label"
+            style={{ color: textColors[item.name] }}
+          >
+            {item.name}
+          </span>
+          <span className="chart-legend-count">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -229,12 +272,15 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
+  const [hoverBarIndex, setHoverBarIndex] = useState(null);
+  const [pieHover, setPieHover] = useState(false);
 
   const viewportWidth = useViewportWidth();
   const isMobile = viewportWidth <= 640;
   const isTablet = viewportWidth > 640 && viewportWidth <= 1024;
 
   const chartTheme = useChartTheme();
+  const gradientId = useId().replace(/:/g, "");
 
   useEffect(() => {
     load();
@@ -337,16 +383,8 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
   const monthlyTickInterval = isMobile ? 5 : isTablet ? 3 : 1;
   const barChartHeight = isMobile ? 170 : 200;
   const donutChartHeight = isMobile ? 200 : 220;
-  const donutOuterRadius = isMobile ? 60 : 72;
-  const donutInnerRadius = isMobile ? 40 : 48;
-
-  const tooltipStyle = {
-    border: chartTheme.tooltipBorder,
-    borderRadius: 6,
-    boxShadow: chartTheme.tooltipShadow,
-    fontSize: 12,
-    background: chartTheme.tooltipBg,
-  };
+  const donutOuterRadius = isMobile ? 60 : 76;
+  const donutInnerRadius = isMobile ? 42 : 54;
 
   return (
     <div className="card">
@@ -403,8 +441,33 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
               <BarChart
                 data={chartData}
                 margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+                onMouseLeave={() => setHoverBarIndex(null)}
               >
-                <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                <defs>
+                  <linearGradient
+                    id={`barGradient-${gradientId}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor={chartTheme.barFill}
+                      stopOpacity={1}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={chartTheme.barFill}
+                      stopOpacity={0.55}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  stroke={chartTheme.grid}
+                  strokeDasharray="3 5"
+                />
                 <XAxis
                   dataKey="label"
                   tick={{
@@ -412,10 +475,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                     fontWeight: 600,
                     fill: chartTheme.tick,
                   }}
-                  axisLine={{
-                    stroke: chartTheme.axisStroke,
-                    strokeWidth: chartTheme.axisWidth,
-                  }}
+                  axisLine={false}
                   tickLine={false}
                   interval={range === "bulanan" ? monthlyTickInterval : 0}
                 />
@@ -427,21 +487,33 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                   width={28}
                 />
                 <Tooltip
-                  cursor={{ fill: chartTheme.cursor }}
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => [`${value} tiket`, ""]}
+                  cursor={{ fill: "var(--chart-cursor)" }}
+                  content={<ChartTooltipCard valueSuffix=" tiket" />}
                 />
                 <Bar
                   dataKey="count"
-                  fill={chartTheme.barFill}
+                  name="Tiket"
+                  radius={[chartTheme.barRadius, chartTheme.barRadius, 2, 2]}
                   stroke={chartTheme.barStroke}
                   strokeWidth={chartTheme.barStrokeWidth}
-                  radius={[chartTheme.barRadius, chartTheme.barRadius, 0, 0]}
                   cursor="pointer"
+                  onMouseEnter={(_, idx) => setHoverBarIndex(idx)}
                   onClick={(data) => {
                     if (data?.count > 0) setSelectedDate(data.dateStr);
                   }}
-                />
+                >
+                  {chartData.map((entry, idx) => (
+                    <Cell
+                      key={entry.dateStr}
+                      fill={`url(#barGradient-${gradientId})`}
+                      fillOpacity={
+                        hoverBarIndex === null || hoverBarIndex === idx
+                          ? 1
+                          : 0.45
+                      }
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -462,58 +534,56 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                 Belum ada data untuk periode ini.
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={donutChartHeight}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={donutInnerRadius}
-                    outerRadius={donutOuterRadius}
-                    paddingAngle={3}
-                    stroke={chartTheme.pieStroke}
-                    strokeWidth={chartTheme.pieStrokeWidth}
-                    label={({ value }) => {
-                      const percent =
-                        totalDalamRange > 0
-                          ? Math.round((value / totalDalamRange) * 100)
-                          : 0;
-                      return `${percent}%`;
-                    }}
-                    labelLine={false}
-                  >
-                    {statusData.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={chartTheme.statusColors[entry.name]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value, name) => [`${value} tiket`, name]}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    iconType="circle"
-                    formatter={(value) => {
-                      const item = statusData.find((s) => s.name === value);
-                      return (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: chartTheme.statusTextColors[value],
-                          }}
-                        >
-                          {value} ({item ? item.value : 0})
-                        </span>
-                      );
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <>
+                <ResponsiveContainer width="100%" height={donutChartHeight}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={donutInnerRadius}
+                      outerRadius={donutOuterRadius}
+                      paddingAngle={4}
+                      stroke={chartTheme.pieStroke}
+                      strokeWidth={chartTheme.pieStrokeWidth}
+                      cornerRadius={6}
+                      onMouseEnter={() => setPieHover(true)}
+                      onMouseLeave={() => setPieHover(false)}
+                    >
+                      {statusData.map((entry) => (
+                        <Cell
+                          key={entry.name}
+                          fill={chartTheme.statusColors[entry.name]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={<ChartTooltipCard valueSuffix=" tiket" />}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      content={
+                        <ChartLegendList
+                          data={statusData}
+                          colors={chartTheme.statusColors}
+                          textColors={chartTheme.statusTextColors}
+                        />
+                      }
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div
+                  className="chart-donut-center"
+                  style={{
+                    opacity: pieHover ? 0 : 1,
+                    transition: "opacity 0.15s ease",
+                  }}
+                >
+                  <div className="chart-donut-total">{totalDalamRange}</div>
+                  <div className="chart-donut-total-label">Total Tiket</div>
+                </div>
+              </>
             )}
           </div>
         </div>

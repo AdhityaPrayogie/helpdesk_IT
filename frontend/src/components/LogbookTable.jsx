@@ -11,6 +11,9 @@ import LogbookHistoryModal from "./LogbookHistoryModal";
 import ConfirmModal from "./ConfirmModal";
 import { useToast } from "./Toast";
 
+const ITEMS_PER_PAGE = 10;
+const SEARCH_DEBOUNCE_MS = 400;
+
 // Hitung tanggal 1 s/d akhir bulan dari bulan+tahun yang dipilih,
 // pakai komponen lokal (bukan toISOString) supaya tidak geser hari.
 const getMonthRange = (year, monthIndex) => {
@@ -83,6 +86,8 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
   const [editingRow, setEditingRow] = useState(null);
   const [historyTarget, setHistoryTarget] = useState(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const yearOptions = (() => {
     const current = today.getFullYear();
@@ -96,6 +101,21 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
   useEffect(() => {
     loadKategoriList();
   }, []);
+
+  // Debounce: baru update debouncedSearch setelah user berhenti ngetik
+  // selama SEARCH_DEBOUNCE_MS, biar filter tidak jalan tiap ketukan huruf.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Balik ke halaman 1 setiap kali hasil pencarian atau data berubah,
+  // supaya tidak nyangkut di halaman yang jadi kosong.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, data]);
 
   // Hitung ulang posisi dropdown berdasarkan posisi tombol toggle di viewport.
   // Dipakai position: fixed, jadi tidak perlu tambah scrollX/scrollY.
@@ -249,23 +269,75 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
   }, [data]);
 
   // Search tabel berdasarkan tanggal, kategori, unit kerja, atau jenis pelayanan
-  // (client-side, tidak mengubah ringkasan di atas)
-  const searchQuery = search.trim().toLowerCase();
+  // (client-side, pakai debouncedSearch supaya tidak filter tiap ketukan huruf)
   const filteredData = useMemo(() => {
-    if (!searchQuery) return data;
+    const query = debouncedSearch.trim().toLowerCase();
+    if (!query) return data;
     return data.filter((row) => {
       const tanggal = (row.tanggal || "").slice(0, 10).toLowerCase();
       const kategori = (row.kategori || "").toLowerCase();
       const unitKerja = (row.unit_kerja || "").toLowerCase();
       const jenisPelayanan = (row.jenis_pelayanan || "").toLowerCase();
       return (
-        tanggal.includes(searchQuery) ||
-        kategori.includes(searchQuery) ||
-        unitKerja.includes(searchQuery) ||
-        jenisPelayanan.includes(searchQuery)
+        tanggal.includes(query) ||
+        kategori.includes(query) ||
+        unitKerja.includes(query) ||
+        jenisPelayanan.includes(query)
       );
     });
-  }, [data, searchQuery]);
+  }, [data, debouncedSearch]);
+
+  // Pagination: 10 data per halaman dari hasil filteredData
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
+  );
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredData, currentPage]);
+
+  const handlePrevPage = () => {
+    setCurrentPage((p) => Math.max(1, p - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((p) => Math.min(totalPages, p + 1));
+  };
+
+  const handleGoToPage = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Bangun daftar nomor halaman yang ditampilkan, dengan "..." kalau
+  // total halaman banyak. Selalu tampilkan halaman pertama, terakhir,
+  // dan beberapa halaman di sekitar halaman aktif.
+  const pageNumbers = useMemo(() => {
+    const siblingCount = 1;
+    const totalNumbers = siblingCount * 2 + 5; // first, last, current, 2 sibling, 2 ellipsis
+    if (totalPages <= totalNumbers) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const leftSibling = Math.max(currentPage - siblingCount, 1);
+    const rightSibling = Math.min(currentPage + siblingCount, totalPages);
+    const showLeftEllipsis = leftSibling > 2;
+    const showRightEllipsis = rightSibling < totalPages - 1;
+
+    const pages = [1];
+    if (showLeftEllipsis) pages.push("ellipsis-left");
+    for (let i = leftSibling; i <= rightSibling; i++) {
+      if (i !== 1 && i !== totalPages) pages.push(i);
+    }
+    if (showRightEllipsis) pages.push("ellipsis-right");
+    pages.push(totalPages);
+    return pages;
+  }, [currentPage, totalPages]);
+
+  const handleClearSearch = () => {
+    setSearch("");
+    setDebouncedSearch(""); // langsung, tidak perlu nunggu debounce
+  };
 
   const handleExport = async () => {
     setExportError("");
@@ -507,7 +579,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
             <button
               type="button"
               className="master-search-clear"
-              onClick={() => setSearch("")}
+              onClick={handleClearSearch}
               aria-label="Bersihkan pencarian"
             >
               ✕
@@ -562,7 +634,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
                 </td>
               </tr>
             )}
-            {filteredData.map((row) => (
+            {paginatedData.map((row) => (
               <tr key={row.id}>
                 <td data-label="Tanggal" className="cell-nowrap">
                   {row.tanggal?.slice(0, 10)}
@@ -653,6 +725,53 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
           </tbody>
         </table>
       </div>
+
+      {!loading && filteredData.length > 0 && (
+        <div className="table-pagination">
+          <span className="table-pagination-info">
+            {filteredData.length} data
+          </span>
+          <div className="table-pagination-controls">
+            <button
+              type="button"
+              className="pagination-btn pagination-nav"
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              aria-label="Halaman sebelumnya"
+            >
+              ‹
+            </button>
+            {pageNumbers.map((page) =>
+              typeof page === "number" ? (
+                <button
+                  key={page}
+                  type="button"
+                  className={`pagination-btn ${
+                    page === currentPage ? "is-active" : ""
+                  }`}
+                  onClick={() => handleGoToPage(page)}
+                  aria-current={page === currentPage ? "page" : undefined}
+                >
+                  {page}
+                </button>
+              ) : (
+                <span key={page} className="pagination-ellipsis">
+                  …
+                </span>
+              ),
+            )}
+            <button
+              type="button"
+              className="pagination-btn pagination-nav"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              aria-label="Halaman berikutnya"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
 
       {editingRow && (
         <LogbookEditModal
