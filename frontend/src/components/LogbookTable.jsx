@@ -1,11 +1,22 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useMemo } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Ellipsis,
+  History,
+  Pencil,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   getLogbook,
   deleteLogbook,
   downloadLogbookXlsx,
   getKategori,
 } from "../api";
+import Combobox from "./Combobox";
 import LogbookEditModal from "./LogbookEditModal";
 import LogbookHistoryModal from "./LogbookHistoryModal";
 import ConfirmModal from "./ConfirmModal";
@@ -38,6 +49,8 @@ const MONTH_NAMES = [
   "November",
   "Desember",
 ];
+
+const BULAN_OPTIONS = MONTH_NAMES.map((nama, id) => ({ id, nama }));
 
 // Format total menit jadi "X jam Y mnt" biar gampang dibaca, misal 125 -> "2 jam 5 mnt"
 const formatMenit = (menit) => {
@@ -77,11 +90,6 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
   // Export filter kategori
   const [kategoriList, setKategoriList] = useState([]);
   const [selectedKategoriIds, setSelectedKategoriIds] = useState([]);
-  const [kategoriOpen, setKategoriOpen] = useState(false);
-  const kategoriWrapRef = useRef(null); // bungkus label + tombol toggle
-  const kategoriToggleRef = useRef(null); // tombol toggle saja (buat hitung posisi)
-  const kategoriDropdownRef = useRef(null); // panel dropdown yang di-portal
-  const [dropdownPos, setDropdownPos] = useState(null); // {top, left, width}
 
   const [editingRow, setEditingRow] = useState(null);
   const [historyTarget, setHistoryTarget] = useState(null);
@@ -91,7 +99,10 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
 
   const yearOptions = (() => {
     const current = today.getFullYear();
-    return [current, current - 1, current - 2, current - 3];
+    return [current, current - 1, current - 2, current - 3].map((y) => ({
+      id: y,
+      nama: String(y),
+    }));
   })();
 
   useEffect(() => {
@@ -116,60 +127,6 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, data]);
-
-  // Hitung ulang posisi dropdown berdasarkan posisi tombol toggle di viewport.
-  // Dipakai position: fixed, jadi tidak perlu tambah scrollX/scrollY.
-  const updateDropdownPos = useCallback(() => {
-    const btn = kategoriToggleRef.current;
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    setDropdownPos({
-      top: rect.bottom + 6,
-      left: rect.left,
-      width: Math.max(rect.width, 240),
-    });
-  }, []);
-
-  const handleToggleKategoriOpen = () => {
-    setKategoriOpen((o) => {
-      const next = !o;
-      if (next) {
-        // hitung posisi tepat sebelum ditampilkan
-        requestAnimationFrame(updateDropdownPos);
-      }
-      return next;
-    });
-  };
-
-  // Tutup dropdown kategori saat klik di luar tombol toggle MAUPUN di luar
-  // panel dropdown (yang sekarang di-portal ke document.body, jadi bukan
-  // lagi anak DOM dari kategoriWrapRef).
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      const clickedToggle =
-        kategoriWrapRef.current && kategoriWrapRef.current.contains(e.target);
-      const clickedDropdown =
-        kategoriDropdownRef.current &&
-        kategoriDropdownRef.current.contains(e.target);
-      if (!clickedToggle && !clickedDropdown) {
-        setKategoriOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Jaga posisi dropdown tetap menempel ke tombolnya saat halaman di-scroll
-  // atau ukuran window berubah (mis. resize, buka devtools, dsb).
-  useEffect(() => {
-    if (!kategoriOpen) return;
-    window.addEventListener("scroll", updateDropdownPos, true);
-    window.addEventListener("resize", updateDropdownPos);
-    return () => {
-      window.removeEventListener("scroll", updateDropdownPos, true);
-      window.removeEventListener("resize", updateDropdownPos);
-    };
-  }, [kategoriOpen, updateDropdownPos]);
 
   const loadData = async (params = {}) => {
     setLoading(true);
@@ -231,31 +188,13 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
     }
   };
 
-  const toggleKategori = (id) => {
-    setSelectedKategoriIds((prev) =>
-      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id],
-    );
-  };
-
-  const handleSelectAllKategori = () => {
-    setSelectedKategoriIds(kategoriList.map((k) => k.id));
-  };
-
-  const handleClearAllKategori = () => {
-    setSelectedKategoriIds([]);
-  };
-
-  const kategoriSummaryLabel = useMemo(() => {
+  const kategoriSummaryLabel = (terpilih) => {
     if (kategoriList.length === 0) return "Memuat kategori...";
-    if (selectedKategoriIds.length === 0) return "Tidak ada kategori dipilih";
-    if (selectedKategoriIds.length === kategoriList.length)
-      return "Semua Kategori";
-    if (selectedKategoriIds.length === 1) {
-      const k = kategoriList.find((k) => k.id === selectedKategoriIds[0]);
-      return k ? k.nama : "1 kategori dipilih";
-    }
-    return `${selectedKategoriIds.length} kategori dipilih`;
-  }, [selectedKategoriIds, kategoriList]);
+    if (terpilih.length === 0) return "Tidak ada kategori dipilih";
+    if (terpilih.length === kategoriList.length) return "Semua Kategori";
+    if (terpilih.length === 1) return terpilih[0].nama;
+    return `${terpilih.length} kategori dipilih`;
+  };
 
   // Ringkasan data yang sedang tampil: total helpdesk, total durasi, rata-rata per helpdesk
   const summaryStats = useMemo(() => {
@@ -276,7 +215,11 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
     return data.filter((row) => {
       const tanggal = (row.tanggal || "").slice(0, 10).toLowerCase();
       const kategori = (row.kategori || "").toLowerCase();
-      const unitKerja = (row.unit_kerja || "").toLowerCase();
+      const unitKerja = (
+        row.it_unit_kerja ||
+        row.unit_kerja ||
+        ""
+      ).toLowerCase();
       const jenisPelayanan = (row.jenis_pelayanan || "").toLowerCase();
       return (
         tanggal.includes(query) ||
@@ -380,9 +323,19 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error(err);
-      setExportError(
-        err.response?.data?.message || "Gagal mengexport data logbook.",
-      );
+      let msg = "Gagal mengexport data logbook.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const errText = await err.response.data.text();
+          const errJson = JSON.parse(errText);
+          if (errJson.message) msg = errJson.message;
+        } catch {
+          // Tetap gunakan fallback jika parsing JSON gagal
+        }
+      } else if (err.response?.data?.message) {
+        msg = err.response.data.message;
+      }
+      setExportError(msg);
     } finally {
       setExporting(false);
     }
@@ -399,30 +352,26 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
 
       <form className="filter-bar" onSubmit={handleFilterBulan}>
         <div className="filter-field">
-          <label>Filter per Bulan</label>
-          <select
+          <label htmlFor="filter-bulan">Filter per Bulan</label>
+          <Combobox
+            id="filter-bulan"
+            searchable={false}
+            clearable={false}
+            options={BULAN_OPTIONS}
             value={filterMonth}
-            onChange={(e) => setFilterMonth(Number(e.target.value))}
-          >
-            {MONTH_NAMES.map((name, idx) => (
-              <option key={name} value={idx}>
-                {name}
-              </option>
-            ))}
-          </select>
+            onChange={setFilterMonth}
+          />
         </div>
         <div className="filter-field">
-          <label>Tahun</label>
-          <select
+          <label htmlFor="filter-tahun">Tahun</label>
+          <Combobox
+            id="filter-tahun"
+            searchable={false}
+            clearable={false}
+            options={yearOptions}
             value={filterYear}
-            onChange={(e) => setFilterYear(Number(e.target.value))}
-          >
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+            onChange={setFilterYear}
+          />
         </div>
         <button type="submit">Tampilkan Bulan Ini</button>
         <button
@@ -436,103 +385,43 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
 
       <div className="export-bar">
         <div className="filter-field">
-          <label>Dari Tanggal</label>
+          <label htmlFor="export-dari">Dari Tanggal</label>
           <input
+            id="export-dari"
             type="date"
             value={exportStart}
             onChange={(e) => setExportStart(e.target.value)}
           />
         </div>
         <div className="filter-field">
-          <label>Sampai Tanggal</label>
+          <label htmlFor="export-sampai">Sampai Tanggal</label>
           <input
+            id="export-sampai"
             type="date"
             value={exportEnd}
             onChange={(e) => setExportEnd(e.target.value)}
           />
         </div>
-
-        <div
-          className="filter-field export-kategori-wrap"
-          ref={kategoriWrapRef}
-        >
-          <label>Kategori</label>
-          <button
-            type="button"
-            ref={kategoriToggleRef}
-            className="export-kategori-toggle"
-            onClick={handleToggleKategoriOpen}
-          >
-            <span className="export-kategori-toggle-text">
-              {kategoriSummaryLabel}
-            </span>
-            <span
-              className={`export-kategori-chevron ${
-                kategoriOpen ? "is-open" : ""
-              }`}
-            >
-              ▾
-            </span>
-          </button>
-
-          {/* Dropdown di-portal langsung ke document.body supaya tidak
-              terjebak di dalam stacking context manapun (mis. elemen yang
-              memakai backdrop-filter pada tema Glassmorphism), sehingga
-              selalu bisa diklik di kedua tema. Posisinya dihitung manual
-              dari posisi tombol toggle di atas. */}
-          {kategoriOpen &&
-            dropdownPos &&
-            createPortal(
-              <div
-                ref={kategoriDropdownRef}
-                className="export-kategori-dropdown"
-                style={{
-                  position: "fixed",
-                  top: dropdownPos.top,
-                  left: dropdownPos.left,
-                  width: dropdownPos.width,
-                }}
-              >
-                <div className="export-kategori-actions">
-                  <button type="button" onClick={handleSelectAllKategori}>
-                    Pilih Semua
-                  </button>
-                  <button type="button" onClick={handleClearAllKategori}>
-                    Kosongkan
-                  </button>
-                </div>
-                {kategoriList.length === 0 && (
-                  <div className="export-kategori-empty">
-                    Belum ada data kategori.
-                  </div>
-                )}
-                {kategoriList.map((k) => (
-                  <label key={k.id} className="export-kategori-option">
-                    <input
-                      type="checkbox"
-                      checked={selectedKategoriIds.includes(k.id)}
-                      onChange={() => toggleKategori(k.id)}
-                    />
-                    <span>
-                      {k.nama}
-                      {!k.aktif && (
-                        <span className="badge-inactive">Nonaktif</span>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>,
-              document.body,
-            )}
+        <div className="filter-field export-kategori-wrap">
+          <label htmlFor="export-kategori">Kategori</label>
+          <Combobox
+            id="export-kategori"
+            multiple
+            bulk
+            options={kategoriList}
+            value={selectedKategoriIds}
+            onChange={setSelectedKategoriIds}
+            summary={kategoriSummaryLabel}
+          />
         </div>
-
         <button type="button" onClick={handleExport} disabled={exporting}>
-          {exporting ? "Mengexport..." : "Export CSV"}
+          <Download size={16} aria-hidden="true" />
+          {exporting ? "Mengexport..." : "Export Excel"}
         </button>
       </div>
       {exportError && <div className="alert alert-error">{exportError}</div>}
       <p className="hint">
-        Export CSV mengambil data logbook di antara Dari Tanggal dan Sampai
+        Export Excel mengambil data logbook di antara Dari Tanggal dan Sampai
         Tanggal, dibatasi hanya untuk kategori yang dipilih di atas.
       </p>
 
@@ -567,11 +456,14 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
 
       {!loading && data.length > 0 && (
         <div className="master-search-wrap">
-          <span className="master-search-icon">⌕</span>
+          <span className="master-search-icon">
+            <Search size={16} aria-hidden="true" />
+          </span>
           <input
             type="text"
             className="master-search-input"
             placeholder="Cari berdasarkan tanggal, kategori, unit kerja, atau jenis pelayanan..."
+            aria-label="Cari logbook"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -582,7 +474,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
               onClick={handleClearSearch}
               aria-label="Bersihkan pencarian"
             >
-              ✕
+              <X size={12} strokeWidth={2.5} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -672,9 +564,9 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
                 <td
                   data-label="Unit Kerja"
                   className="cell-truncate"
-                  title={row.unit_kerja || "-"}
+                  title={row.it_unit_kerja || row.unit_kerja || "-"}
                 >
-                  {row.unit_kerja || "-"}
+                  {row.it_unit_kerja || row.unit_kerja || "-"}
                 </td>
                 <td data-label="Jenis Pelayanan" className="cell-nowrap">
                   {row.jenis_pelayanan || "-"}
@@ -701,22 +593,31 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
                 <td data-label="Aksi" className="cell-aksi">
                   <div className="action-btns">
                     <button
-                      className="btn-secondary"
+                      type="button"
+                      className="btn-secondary icon-btn"
                       onClick={() => setEditingRow(row)}
+                      aria-label="Edit"
+                      title="Edit"
                     >
-                      Edit
+                      <Pencil size={14} aria-hidden="true" />
                     </button>
                     <button
-                      className="btn-secondary"
+                      type="button"
+                      className="btn-secondary icon-btn"
                       onClick={() => setHistoryTarget(row.id)}
+                      aria-label="Riwayat"
+                      title="Riwayat"
                     >
-                      Riwayat
+                      <History size={14} aria-hidden="true" />
                     </button>
                     <button
-                      className="btn-danger"
+                      type="button"
+                      className="btn-danger icon-btn"
                       onClick={() => handleDelete(row)}
+                      aria-label="Hapus"
+                      title="Hapus"
                     >
-                      Hapus
+                      <Trash2 size={14} aria-hidden="true" />
                     </button>
                   </div>
                 </td>
@@ -739,7 +640,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
               disabled={currentPage === 1}
               aria-label="Halaman sebelumnya"
             >
-              ‹
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
             {pageNumbers.map((page) =>
               typeof page === "number" ? (
@@ -755,8 +656,8 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
                   {page}
                 </button>
               ) : (
-                <span key={page} className="pagination-ellipsis">
-                  …
+                <span key={page} className="pagination-ellipsis" aria-hidden="true">
+                  <Ellipsis size={16} />
                 </span>
               ),
             )}
@@ -767,7 +668,7 @@ export default function LogbookTable({ refreshTrigger, onDataChanged }) {
               disabled={currentPage === totalPages}
               aria-label="Halaman berikutnya"
             >
-              ›
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
           </div>
         </div>

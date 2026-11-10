@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&display=swap");
-
 * {
   box-sizing: border-box;
 }
@@ -8,6 +6,22 @@
    DESIGN TOKENS — Neo-Brutalism / Bold Light
    =================================================== */
 :root {
+  color-scheme: light;
+
+  /* skala tipografi — pakai token ini, jangan nilai px baru */
+  --fs-2xs: 12px; /* badge, caption */
+  --fs-xs: 13px; /* label uppercase, meta */
+  --fs-sm: 14px; /* tabel, navigasi, teks sekunder */
+  --fs-base: 15px; /* isi, kontrol form */
+  --fs-md: 17px; /* judul kecil */
+  --fs-lg: 19px; /* judul kartu / modal */
+  --fs-xl: 22px; /* judul halaman */
+  --fs-2xl: 28px; /* angka besar (statistik) */
+  --danger-solid: #dc2626; /* teks putih 4.83:1 */
+  --danger-solid-hover: #b91c1c;
+  --accent-text: #1d4ed8; /* teks biru di atas accent-soft / kartu */
+  --th-bg: #000000; /* header tabel */
+
   /* base */
   --bg: #f4f4f0;
   --ink: #000000;
@@ -29,7 +43,7 @@
   --sidebar-active: #ffffff;
 
   /* accent — Tech Blue, mengikuti kategori Web Dev/Coding */
-  --accent: #3b82f6;
+  --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --accent-2: #00e5ff;
   --accent-soft: #e6f0ff;
@@ -75,31 +89,72 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-snap: cubic-bezier(0.68, -0.4, 0.32, 1.4);
 
-  /* ===== chart tokens — neo-brutalism ===== */
---chart-grid: var(--border-soft);
---chart-tick: var(--muted);
---chart-axis-stroke: var(--ink);
---chart-axis-width: 2px;
---chart-cursor: var(--accent-soft);
+  /* ===== chart tokens — modern: tanpa outline, sudut bulat, bayangan lembut ===== */
+  --chart-grid: var(--border-soft);
+  --chart-tick: var(--muted);
+  --chart-cursor: var(--accent-soft);
 
---chart-bar-fill: #60a5fa;
---chart-bar-stroke: var(--ink);
---chart-bar-stroke-width: 2px;
---chart-bar-radius: 3px;
+  --chart-bar-fill: #3b82f6;
+  --chart-bar-stroke: transparent;
+  --chart-bar-stroke-width: 0;
+  --chart-bar-radius: 6px;
 
---chart-tooltip-bg: var(--card-bg);
---chart-tooltip-border: 2px solid var(--ink);
---chart-tooltip-shadow: 3px 3px 0 var(--shadow-color);
+  --chart-tooltip-bg: var(--card-bg);
+  --chart-tooltip-border: 1px solid var(--border-soft);
+  --chart-tooltip-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 
---chart-pie-stroke: var(--ink);
---chart-pie-stroke-width: 2px;
+  /* celah 2px warna kartu antar irisan donat */
+  --chart-pie-stroke: var(--card-bg);
+  --chart-pie-stroke-width: 2px;
 
---chart-proses: #fcd34d;
---chart-proses-text: #78350f;
---chart-selesai: #86efac;
---chart-selesai-text: #14532d;
---chart-batal: #fca5a5;
---chart-batal-text: #7f1d1d;
+  /* status — lolos cek CVD (deutan ΔE 10.2) vs kartu terang */
+  --chart-proses: #f59e0b;
+  --chart-selesai: #0d9488;
+  --chart-batal: #e11d48;
+}
+
+/* ===================================================
+   DARK MODE — cukup timpa token; atribut diset di <html data-theme="dark">
+   =================================================== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  /* ponytail: --ink = warna garis/border. Dulu putih 2-3px di semua kartu = silau.
+     Sekarang abu redup (~3:1 vs kartu, cukup buat batas UI), teks off-white bukan putih murni. */
+  --bg: #131316;
+  --ink: #5f5f6b;
+  --text: #e4e4e7;
+  --muted: #a1a1aa;
+  --card-bg: #1b1b20;
+  --surface-1: #232329;
+  --surface-2: #2c2c33;
+  --input-bg: #16161a;
+  --shadow-color: #000000;
+  --border-soft: #2e2e35;
+  --sidebar-bg: #0f0f12;
+
+  /* status badge: neon diredam (teks hitam tetap kontras) */
+  --c-open-bg: #e3c341;
+  --c-proses-bg: #e3c341;
+  --c-selesai-bg: #4ade80;
+  --c-batal-bg: #f87171;
+  --chart-bar-fill: #4f86d1;
+  --accent-soft: #1b2a47;
+  --accent-text: #93c5fd;
+  --th-bg: #2c2c33;
+  --c-neutral-bg: #2c2c33;
+
+  /* teks di atas permukaan gelap: pastel terang (alert, kartu statistik, legenda chart) */
+  --c-selesai-soft-bg: #14391f;
+  --c-selesai-soft-text: #86efac;
+  --c-pending-soft-bg: #3d3208;
+  --c-pending-soft-text: #fde047;
+  --c-error-soft-bg: #431a1a;
+  --c-error-soft-text: #fca5a5;
+  /* status chart versi gelap — lolos cek lightness/CVD/kontras vs #1b1b20 */
+  --chart-proses: #d97706;
+  --chart-selesai: #0d9488;
+  --chart-batal: #e11d48;
+  --chart-tooltip-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 @keyframes fadeInUp {
@@ -138,7 +193,23 @@ body {
   font-family: "Space Grotesk", "Inter", "Segoe UI", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+  font-size: var(--fs-base);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* angka sejajar di tabel dan kartu statistik */
+td,
+.stat-value,
+.spd-summary-value {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ===================================================
@@ -176,10 +247,10 @@ body {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 8px 22px;
+  gap: 12px;
+  padding: 0 8px 20px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .sidebar-close {
@@ -239,30 +310,26 @@ body {
 .brand-mark {
   width: 36px;
   height: 36px;
-  background: var(--accent);
-  color: #fff;
-  border: 2px solid #fff;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 13px;
+  flex-shrink: 0;
+  border-radius: 24%; /* = rx 48/200 di Helpdesk.svg, biar shadow ikut sudutnya */
   box-shadow: 3px 3px 0 rgba(255, 255, 255, 0.2);
 }
 
 .brand-title {
   color: #fff;
-  font-weight: 800;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: var(--fs-md);
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 .brand-subtitle {
-  font-size: 11px;
+  margin-top: 2px;
+  font-size: var(--fs-2xs);
+  font-weight: 600;
   color: var(--sidebar-text);
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .sidebar-nav {
@@ -275,16 +342,23 @@ body {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-height: 40px;
+  position: relative;
+  overflow: hidden;
   background: transparent;
   color: var(--sidebar-text);
   border: 2px solid transparent;
   text-align: left;
-  padding: 10px 12px;
+  text-decoration: none;
+  padding: 0 12px;
   border-radius: var(--radius);
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
+  opacity: 0;
+  animation: fadeInUp 0.35s var(--ease) both;
   box-shadow: none;
   transition:
     transform 0.18s var(--ease-snap),
@@ -306,6 +380,13 @@ body {
   box-shadow: 3px 3px 0 rgba(255, 255, 255, 0.18);
 }
 
+.nav-item:focus-visible,
+.sidebar-logout:focus-visible,
+.sidebar-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 .nav-icon {
   width: 18px;
   height: 18px;
@@ -316,9 +397,10 @@ body {
 }
 
 .sidebar-footer {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.22);
-  padding: 8px;
+  font-size: var(--fs-2xs);
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.04em;
+  padding: 12px 8px 0;
 }
 
 .main-area {
@@ -333,15 +415,17 @@ body {
   padding: 20px 32px;
 }
 
+/* sisakan ruang untuk tombol mode terang/gelap (fixed, kanan atas) */
 .topbar h1 {
+  padding-right: 56px;
   margin: 0;
-  font-size: clamp(16px, 1.6vw + 10px, 21px);
-  font-weight: 800;
+  font-size: var(--fs-xl);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .page-content {
-  padding: 28px 32px 60px;
+  padding: 32px 32px 64px;
   animation: fadeIn 0.4s var(--ease);
 }
 
@@ -352,14 +436,14 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
   background: var(--card-bg);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 20px;
   box-shadow: var(--shadow-hard-sm);
   animation: fadeInUp 0.45s var(--ease) both;
   transition:
@@ -374,18 +458,18 @@ body {
 }
 
 .stat-value {
-  font-size: clamp(18px, 1.4vw + 12px, 27px);
-  font-weight: 800;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .stat-label {
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   color: var(--muted);
   margin-top: 4px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 /* Tone kartu — background dibuat soft/transparan (tint tipis dari warna
@@ -394,14 +478,14 @@ body {
   background: var(--card-bg);
 }
 .tone-default .stat-value {
-  color: var(--ink);
+  color: var(--text);
 }
 
 .tone-info {
   background: color-mix(in srgb, var(--accent) 14%, var(--card-bg));
 }
 .tone-info .stat-value {
-  color: var(--accent-dark);
+  color: var(--accent-text);
 }
 
 .tone-proses {
@@ -432,7 +516,7 @@ body {
   background: var(--card-bg);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 22px 24px;
+  padding: 24px 24px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-hard-sm);
   animation: fadeInUp 0.45s var(--ease) both;
@@ -448,16 +532,16 @@ body {
 }
 
 .card-header h2 {
-  font-size: 16px;
+  font-size: var(--fs-md);
   margin: 0;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .btn-link {
   background: none;
   color: var(--accent-2);
   border: none;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   padding: 0;
   cursor: pointer;
@@ -471,7 +555,7 @@ body {
 
 .muted {
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
 }
 
 .activity-list {
@@ -484,7 +568,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 13px 0;
+  padding: 12px 0;
   border-bottom: 1.5px solid var(--border-soft);
   transition: transform 0.15s var(--ease);
 }
@@ -507,13 +591,13 @@ body {
 }
 
 .activity-title {
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 700;
   word-break: break-word;
 }
 
 .activity-meta {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   margin-top: 2px;
   overflow-wrap: break-word;
@@ -526,22 +610,39 @@ body {
   background: var(--card-bg);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 26px;
+  padding: 24px;
   box-shadow: var(--shadow-hard);
   animation: fadeInUp 0.5s var(--ease) both;
 }
 
 .logbook-form h2 {
   margin-top: 0;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px 20px;
+}
+
+.modal-box .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1099px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .form-grid,
+  .modal-box .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-field-full {
@@ -550,12 +651,13 @@ body {
 
 .form-field label {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  margin-bottom: 6px;
+  line-height: 1.3;
+  margin-bottom: 8px;
   color: var(--text);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .form-field input,
@@ -565,7 +667,7 @@ body {
   padding: 10px 12px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-family: inherit;
   background: var(--input-bg);
   color: var(--text);
@@ -582,6 +684,20 @@ body {
   transform: translate(-1px, -1px);
 }
 
+.form-field input:disabled,
+.form-field select:disabled,
+.form-field textarea:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--surface-2);
+  border-color: var(--border-soft);
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* ===================================================
    BUTTONS
    =================================================== */
@@ -589,14 +705,14 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   background: var(--accent);
   color: #fff;
   border: 2px solid var(--ink);
-  padding: 10px 18px;
+  padding: 10px 20px;
   border-radius: var(--radius);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 700;
   box-shadow: var(--shadow-hard-sm);
   transition:
@@ -637,15 +753,15 @@ button:disabled {
 }
 
 .btn-danger {
-  background: var(--c-batal-bg);
+  background: var(--danger-solid);
   color: #ffffff;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   box-shadow: var(--shadow-hard-sm);
 }
 
 .btn-danger:hover {
-  background: #e0154a;
+  background: var(--danger-solid-hover);
 }
 
 .btn-danger-outline {
@@ -667,11 +783,11 @@ button:disabled {
    ALERTS
    =================================================== */
 .alert {
-  padding: 12px 14px;
+  padding: 12px 16px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   margin-bottom: 16px;
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   animation: fadeInUp 0.3s var(--ease) both;
 }
@@ -700,8 +816,8 @@ button:disabled {
 
 .logbook-table-wrap h2 {
   margin-top: 0;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: var(--fs-lg);
+  font-weight: 700;
 }
 
 .filter-bar,
@@ -710,7 +826,7 @@ button:disabled {
   align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   padding: 16px;
   background: var(--surface-1);
   border: 2px solid var(--border-soft);
@@ -719,24 +835,23 @@ button:disabled {
 
 .filter-field label {
   display: block;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--muted);
   margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .filter-field input,
-.filter-field select,
-.export-bar input,
-.export-bar select {
-  padding: 9px 11px;
+.export-bar input {
+  height: 40px;
+  padding: 0 12px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   background: var(--input-bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-family: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -746,155 +861,63 @@ button:disabled {
 }
 
 .filter-field input:focus,
-.filter-field select:focus,
-.export-bar input:focus,
-.export-bar select:focus {
+.export-bar input:focus {
   outline: none;
   box-shadow: var(--shadow-hard-sm);
   transform: translate(-1px, -1px);
 }
 
-.filter-bar .filter-field:nth-child(1) select {
-  min-width: 132px;
+.filter-bar .filter-field:nth-child(1) {
+  min-width: 160px;
 }
 
-.filter-bar .filter-field:nth-child(2) select {
-  min-width: 90px;
+.filter-bar .filter-field:nth-child(2) {
+  min-width: 110px;
+}
+
+/* combobox di bar filter lebih ringkas dari di form */
+.filter-field .combobox-trigger {
+  height: 40px;
+  min-height: 40px;
+  font-weight: 600;
+}
+
+.combobox-bulk {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1.5px solid var(--border-soft);
+}
+
+.combobox-bulk button {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: var(--fs-xs);
+  background: var(--surface-1);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.combobox-bulk button:hover {
+  transform: none;
+  background: var(--accent-soft);
 }
 
 .export-bar label {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--muted);
   font-weight: 600;
 }
 
 .hint {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   margin-top: 0;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .export-kategori-wrap {
-  position: relative;
-  min-width: 200px;
-}
-
-.export-kategori-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 11px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: none;
-  transition: background 0.15s var(--ease);
-}
-
-.export-kategori-toggle:hover {
-  transform: none;
-  background: var(--surface-2);
-}
-
-.export-kategori-toggle-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.export-kategori-chevron {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--muted);
-  display: inline-block;
-  transition: transform 0.2s var(--ease-snap);
-}
-
-.export-kategori-chevron.is-open {
-  transform: rotate(180deg);
-}
-
-.export-kategori-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  width: max(100%, 240px);
-  max-height: 260px;
-  overflow-y: auto;
-  background: var(--card-bg);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-hard);
-  padding: 8px;
-  animation: scaleIn 0.18s var(--ease-snap) both;
-  transform-origin: top center;
-}
-
-.export-kategori-actions {
-  display: flex;
-  gap: 8px;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-  border-bottom: 1.5px solid var(--border-soft);
-}
-
-.export-kategori-actions button {
-  flex: 1;
-  padding: 6px 8px;
-  font-size: 11.5px;
-  font-weight: 700;
-  background: var(--surface-1);
-  color: var(--text);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius);
-  box-shadow: none;
-  transition: background 0.15s var(--ease);
-}
-
-.export-kategori-actions button:hover {
-  transform: none;
-  background: var(--accent-soft);
-}
-
-.export-kategori-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition:
-    background 0.15s var(--ease),
-    padding-left 0.15s var(--ease);
-}
-
-.export-kategori-option:hover {
-  background: var(--surface-1);
-  padding-left: 10px;
-}
-
-.export-kategori-option input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--accent);
-  flex-shrink: 0;
-}
-
-.export-kategori-empty {
-  padding: 10px 6px;
-  font-size: 12.5px;
-  color: var(--muted);
-  text-align: center;
+  min-width: 220px;
 }
 
 .table-scroll {
@@ -908,8 +931,8 @@ button:disabled {
 .logbook-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 16px;
+  margin-bottom: 20px;
   animation: fadeInUp 0.35s var(--ease) both;
 }
 
@@ -931,48 +954,49 @@ button:disabled {
 }
 
 .summary-value {
-  font-size: clamp(17px, 1vw + 14px, 22px);
-  font-weight: 800;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--accent-dark);
+  color: var(--accent-text);
 }
 
 .summary-subvalue {
   margin-left: 8px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 0;
 }
 
 .summary-label {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   margin-top: 4px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 th,
 td {
   text-align: left;
-  padding: 11px 13px;
+  line-height: 1.45;
+  padding: 12px 12px;
   border-bottom: 1.5px solid var(--border-soft);
   vertical-align: top;
 }
 
 th {
-  background: var(--shadow-color);
+  background: var(--th-bg);
   color: #fff;
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   position: sticky;
@@ -981,7 +1005,6 @@ th {
 
 tbody tr {
   transition: background 0.15s var(--ease);
-  animation: fadeIn 0.4s var(--ease) both;
 }
 
 tbody tr:hover {
@@ -995,7 +1018,7 @@ tbody tr:last-child td {
 .empty {
   text-align: center;
   color: var(--muted);
-  padding: 30px;
+  padding: 32px;
   font-weight: 600;
 }
 
@@ -1004,14 +1027,14 @@ tbody tr:last-child td {
    =================================================== */
 .badge {
   display: inline-block;
-  padding: 4px 11px;
+  padding: 4px 12px;
   border: 1.5px solid var(--ink);
   border-radius: 20px;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   transition:
     background 0.25s var(--ease),
     color 0.25s var(--ease),
@@ -1036,10 +1059,10 @@ tbody tr:last-child td {
 }
 
 .badge-inactive {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   background: var(--c-neutral-bg);
   color: var(--muted);
-  padding: 3px 9px;
+  padding: 3px 8px;
   border: 1.5px solid var(--border-soft);
   border-radius: 20px;
   margin-left: 8px;
@@ -1050,22 +1073,48 @@ tbody tr:last-child td {
     opacity 0.25s var(--ease);
 }
 
+.badge-role {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1.5px solid var(--ink);
+  background: var(--surface-1);
+  color: var(--text);
+  box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-role.badge-super {
+  background: #9333ea;
+  color: #ffffff;
+  border-color: var(--ink);
+}
+
 /* ===================================================
    ACTION BUTTONS
    =================================================== */
 .action-btns {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
-.action-btns button {
-  width: 100%;
-  padding: 6px 10px;
-  font-size: 12px;
-  white-space: nowrap;
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
   justify-content: center;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.icon-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
 }
 
 /* ===================================================
@@ -1074,13 +1123,13 @@ tbody tr:last-child td {
 .history-batch-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .history-batch {
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 16px 16px;
   background: var(--surface-1);
 }
 
@@ -1088,7 +1137,7 @@ tbody tr:last-child td {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 10px;
   padding-bottom: 8px;
@@ -1096,15 +1145,15 @@ tbody tr:last-child td {
 }
 
 .history-batch-aksi {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--accent-dark);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--accent-text);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .history-batch-meta {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   font-weight: 600;
 }
@@ -1123,7 +1172,7 @@ tbody tr:last-child td {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .history-field-label {
@@ -1136,7 +1185,7 @@ tbody tr:last-child td {
 .history-field-value {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
   color: var(--text);
 }
@@ -1179,7 +1228,7 @@ tbody tr:last-child td {
   background: var(--card-bg);
   border: 3px solid var(--ink);
   border-radius: var(--radius);
-  padding: 26px;
+  padding: 24px;
   width: 100%;
   max-width: 720px;
   max-height: 90vh;
@@ -1194,14 +1243,14 @@ tbody tr:last-child td {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-  padding-bottom: 14px;
+  padding-bottom: 16px;
   border-bottom: 1.5px solid var(--border-soft);
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: var(--fs-lg);
+  font-weight: 700;
 }
 
 .modal-close {
@@ -1224,7 +1273,7 @@ tbody tr:last-child td {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   margin-top: 20px;
 }
 
@@ -1238,19 +1287,19 @@ tbody tr:last-child td {
    CONFIRM MODAL
    =================================================== */
 .confirm-message {
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   color: var(--text);
   margin: 0;
 }
 
 .btn-danger-confirm {
-  background: var(--c-batal-bg);
+  background: var(--danger-solid);
   color: #ffffff;
 }
 
 .btn-danger-confirm:hover {
-  background: #e0154a;
+  background: var(--danger-solid-hover);
 }
 
 /* ===================================================
@@ -1263,7 +1312,7 @@ tbody tr:last-child td {
   z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   max-width: 360px;
   width: calc(100% - 40px);
 }
@@ -1271,13 +1320,13 @@ tbody tr:last-child td {
 .toast {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 13px 14px;
+  gap: 12px;
+  padding: 12px 16px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   background: var(--card-bg);
   box-shadow: var(--shadow-hard);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   animation: fadeInUp 0.25s var(--ease-snap) both;
 }
@@ -1290,8 +1339,8 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--fs-xs);
+  font-weight: 700;
   color: #000000;
 }
 
@@ -1314,7 +1363,7 @@ tbody tr:last-child td {
 
 .toast-info {
   background: var(--accent-soft);
-  color: var(--accent-dark);
+  color: var(--accent-text);
 }
 .toast-info .toast-icon {
   background: var(--accent);
@@ -1334,7 +1383,7 @@ tbody tr:last-child td {
   box-shadow: none;
   color: inherit;
   padding: 0;
-  font-size: 16px;
+  font-size: var(--fs-md);
   line-height: 1;
   opacity: 0.6;
 }
@@ -1359,13 +1408,13 @@ tbody tr:last-child td {
    DURATION PREVIEW
    =================================================== */
 .duration-preview {
-  padding: 10px 12px;
+  padding: 0 12px;
   background: var(--accent-soft);
-  color: var(--accent-dark);
+  color: var(--accent-text);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 800;
+  font-size: var(--fs-base);
+  font-weight: 700;
 }
 
 /* ===================================================
@@ -1377,7 +1426,7 @@ tbody tr:last-child td {
   margin-bottom: 20px;
   flex-wrap: wrap;
   border-bottom: 2px solid var(--ink);
-  padding-bottom: 14px;
+  padding-bottom: 16px;
 }
 
 .master-tab {
@@ -1385,7 +1434,7 @@ tbody tr:last-child td {
   color: var(--text);
   border: 2px solid var(--ink);
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   box-shadow: var(--shadow-hard-sm);
 }
 
@@ -1400,7 +1449,7 @@ tbody tr:last-child td {
 
 .master-add-form {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -1409,7 +1458,7 @@ tbody tr:last-child td {
   padding: 10px 12px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--fs-base);
   background: var(--input-bg);
   color: var(--text);
 }
@@ -1418,20 +1467,20 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .master-section-title {
   margin: 0 0 4px;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--fs-md);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .master-section-count {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   font-weight: 600;
 }
@@ -1439,7 +1488,7 @@ tbody tr:last-child td {
 .master-add-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1468,10 +1517,11 @@ tbody tr:last-child td {
 
 .master-search-input {
   width: 100%;
-  padding: 10px 36px 10px 34px;
+  height: 40px;
+  padding: 0 36px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--fs-base);
   background: var(--input-bg);
   color: var(--text);
 }
@@ -1503,7 +1553,7 @@ tbody tr:last-child td {
 
 .master-search-clear:hover {
   transform: translateY(-50%);
-  background: var(--c-batal-bg);
+  background: var(--danger-solid);
   color: #fff;
 }
 
@@ -1513,7 +1563,7 @@ tbody tr:last-child td {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .master-list-item {
@@ -1522,10 +1572,10 @@ tbody tr:last-child td {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 13px 16px;
+  padding: 12px 16px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--fs-base);
   background: var(--card-bg);
   transition:
     transform 0.15s var(--ease-snap),
@@ -1564,7 +1614,7 @@ tbody tr:last-child td {
 
 .master-list-actions button {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   min-width: 0;
 }
 
@@ -1577,7 +1627,7 @@ tbody tr:last-child td {
    =================================================== */
 .range-toggle {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -1586,7 +1636,7 @@ tbody tr:last-child td {
   color: var(--text);
   border: 2px solid var(--ink);
   padding: 6px 12px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   box-shadow: 2px 2px 0 var(--shadow-color);
   transition:
@@ -1621,10 +1671,10 @@ tbody tr:last-child td {
    bukan cuma teks polos, supaya konsisten dengan bahasa visual neo-brutalism */
 .btn-link {
   background: var(--surface-1);
-  color: var(--accent-dark);
+  color: var(--accent-text);
   border: 2px solid var(--ink);
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   box-shadow: 2px 2px 0 var(--shadow-color);
   cursor: pointer;
@@ -1657,7 +1707,7 @@ tbody tr:last-child td {
   padding: 8px 12px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   font-family: inherit;
   background: var(--input-bg);
@@ -1700,17 +1750,17 @@ tbody tr:last-child td {
 }
 
 .chart-total {
-  font-size: clamp(20px, 1.2vw + 16px, 26px);
-  font-weight: 800;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
   color: var(--accent);
   letter-spacing: -0.02em;
 }
 
 .chart-wrap {
-  border: 2px solid var(--border-soft);
-  border-radius: var(--radius);
-  padding: 10px 6px 4px;
-  background: var(--surface-1);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 16px 8px 8px;
+  background: var(--card-bg);
   min-width: 0;
 }
 
@@ -1816,6 +1866,10 @@ tbody tr:last-child td {
   .login-shape {
     animation: none;
   }
+  .nav-item {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1840,12 +1894,12 @@ tbody tr:last-child td {
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  margin-top: 14px;
+  margin-top: 16px;
   flex-wrap: wrap;
 }
 
 .table-pagination-info {
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   color: var(--muted);
   font-weight: 700;
 }
@@ -1853,15 +1907,15 @@ tbody tr:last-child td {
 .table-pagination-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pagination-btn {
-  min-width: 34px;
-  height: 34px;
+  min-width: 36px;
+  height: 36px;
   padding: 0 8px;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   background: var(--surface-1);
   color: var(--text);
@@ -1915,16 +1969,16 @@ tbody tr:last-child td {
   border: var(--chart-tooltip-border);
   border-radius: 10px;
   box-shadow: var(--chart-tooltip-shadow);
-  padding: 8px 12px;
-  font-size: 12px;
-  min-width: 120px;
+  padding: 10px 12px;
+  font-size: var(--fs-xs);
+  min-width: 140px;
 }
 
 .chart-tooltip-label {
   font-weight: 700;
   color: var(--text);
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .chart-tooltip-body {
@@ -1936,13 +1990,13 @@ tbody tr:last-child td {
 .chart-tooltip-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .chart-tooltip-dot {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
@@ -1953,7 +2007,7 @@ tbody tr:last-child td {
 }
 
 .chart-tooltip-value {
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text);
 }
 
@@ -1961,7 +2015,7 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
   margin-top: 4px;
 }
@@ -1969,8 +2023,8 @@ tbody tr:last-child td {
 .chart-legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: var(--fs-xs);
   font-weight: 600;
 }
 
@@ -2004,14 +2058,14 @@ tbody tr:last-child td {
 }
 
 .chart-donut-total {
-  font-size: 22px;
-  font-weight: 800;
+  font-size: var(--fs-xl);
+  font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
 }
 
 .chart-donut-total-label {
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -2038,7 +2092,7 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
   opacity: 0;
   animation: fadeInUp 0.4s var(--ease) 0.05s both;
 }
@@ -2047,28 +2101,20 @@ tbody tr:last-child td {
   flex-shrink: 0;
   width: 42px;
   height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent);
-  color: #fff;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  font-weight: 800;
-  font-size: 14px;
+  border-radius: 24%;
   box-shadow: var(--shadow-hard-sm);
 }
 
 .login-form h1 {
   margin: 0 0 2px;
-  font-size: 19px;
-  font-weight: 800;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .login-brand p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 
@@ -2088,11 +2134,11 @@ tbody tr:last-child td {
 
 .login-field label {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .login-input-wrap {
@@ -2115,7 +2161,7 @@ tbody tr:last-child td {
   padding: 10px 12px 10px 36px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-family: inherit;
   background: var(--input-bg);
   color: var(--text);
@@ -2180,11 +2226,11 @@ tbody tr:last-child td {
 }
 
 .login-error {
-  padding: 12px 14px;
+  padding: 12px 16px;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   margin-bottom: 16px;
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   background: var(--c-error-soft-bg);
   color: var(--c-error-soft-text);
@@ -2197,9 +2243,9 @@ tbody tr:last-child td {
 .sidebar-user {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-  padding-top: 14px;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 2px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -2212,7 +2258,7 @@ tbody tr:last-child td {
 
 .sidebar-user-name {
   color: #fff;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -2221,8 +2267,11 @@ tbody tr:last-child td {
 
 .sidebar-user-role {
   color: var(--sidebar-text);
-  font-size: 11px;
-  margin-top: 2px;
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
 }
 
 .sidebar-logout {
@@ -2230,13 +2279,15 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   background: transparent;
   color: #ff8a8a;
   border: 2px solid rgba(255, 138, 138, 0.4);
   box-shadow: none;
-  font-size: 12.5px;
-  padding: 8px 12px;
+  min-height: 40px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 0 12px;
 }
 
 .sidebar-logout:hover {
@@ -2271,16 +2322,6 @@ tbody tr:last-child td {
   transform: rotate(90deg);
 }
 
-.nav-item {
-  opacity: 0;
-  animation: fadeInUp 0.35s var(--ease) both;
-}
-
-.nav-item {
-  position: relative;
-  overflow: hidden;
-}
-
 .nav-item::before {
   content: "";
   position: absolute;
@@ -2304,6 +2345,14 @@ tbody tr:last-child td {
   animation: fadeInUp 0.35s var(--ease) both;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-user,
+  .sidebar-footer {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 @media (max-width: 640px) {
   .sidebar {
     transition:
@@ -2313,172 +2362,160 @@ tbody tr:last-child td {
 }
 
 /* ===================================================
-   SEARCHABLE SELECT (combobox untuk PIC / IT / Kategori / Unit Kerja)
+   COMBOBOX (gaya shadcn: trigger + popover berisi cari & daftar centang)
    =================================================== */
-.searchable-select {
+.combobox {
   position: relative;
 }
 
-.searchable-select input {
+.combobox-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
-  padding: 10px 12px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-family: inherit;
+  height: 46px;
+  padding: 0 12px;
   background: var(--input-bg);
   color: var(--text);
-  transition:
-    transform 0.15s var(--ease-snap),
-    box-shadow 0.15s var(--ease);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 400;
+  text-align: left;
+  box-shadow: none;
 }
 
-.searchable-select input:focus {
+.combobox-trigger:hover,
+.combobox-trigger:active {
+  background: var(--surface-1);
+  transform: none;
+  box-shadow: none;
+}
+
+.combobox-trigger:focus-visible,
+.combobox-trigger[aria-expanded="true"] {
   outline: none;
   box-shadow: var(--shadow-hard-sm);
   transform: translate(-1px, -1px);
 }
 
-.searchable-dropdown {
+.combobox-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combobox-value.is-placeholder {
+  color: var(--muted);
+}
+
+.combobox-trigger svg,
+.combobox-search svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.combobox-popover {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: var(--surface-1);
+  z-index: 60;
+  overflow: hidden;
+  background: var(--card-bg);
+  color: var(--text);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  max-height: 260px;
-  overflow-y: auto;
-  z-index: 60;
   box-shadow: var(--shadow-hard);
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   animation: scaleIn 0.18s var(--ease-snap) both;
   transform-origin: top center;
 }
 
-.searchable-option {
+.combobox-search {
   display: flex;
-  align-items: center;
-  padding: 10px 13px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 1.5px solid var(--border-soft);
-  transition:
-    background 0.15s var(--ease),
-    color 0.15s var(--ease),
-    padding-left 0.15s var(--ease);
-}
-
-.searchable-option:last-child {
-  border-bottom: none;
-}
-
-.searchable-option:hover {
-  background: var(--accent-soft);
-  padding-left: 16px;
-}
-
-.searchable-option.selected {
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-weight: 800;
-}
-
-.searchable-empty {
-  padding: 12px 13px;
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-/* ===================================================
-   SEARCHABLE MULTI-SELECT (chip/tag untuk Nama IT dsb)
-   =================================================== */
-.multiselect-control {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  cursor: text;
-  transition:
-    transform 0.15s var(--ease-snap),
-    box-shadow 0.15s var(--ease);
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: 2px solid var(--ink);
 }
 
-.multiselect-control:focus-within {
-  box-shadow: var(--shadow-hard-sm);
-  transform: translate(-1px, -1px);
+/* menimpa gaya input form/filter (border, tinggi, bayangan) di mana pun combobox dipakai */
+.combobox-popover .combobox-search input,
+.combobox-popover .combobox-search input:focus {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  outline: none;
+  font-size: var(--fs-base);
 }
 
-.multiselect-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px 5px 12px;
-  background: var(--accent);
-  color: #fff;
-  border: 1.5px solid var(--ink);
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
+.combobox-search:focus-within {
+  background: var(--accent-soft);
 }
 
-.multiselect-chip-remove {
+.combobox-list {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+}
+
+.combobox-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
-  color: #fff;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: calc(var(--radius) - 2px);
+  font-size: var(--fs-base);
   cursor: pointer;
-  transition: background 0.15s var(--ease);
 }
 
-.multiselect-chip-remove:hover {
-  background: rgba(255, 255, 255, 0.45);
-  transform: none;
+.combobox-item[data-active="true"] {
+  background: var(--accent-soft);
 }
 
-.multiselect-input {
-  flex: 1 1 120px;
-  min-width: 120px;
-  border: none !important;
-  outline: none;
-  padding: 6px 4px !important;
-  margin: 0;
-  font-size: 14px;
-  font-family: inherit;
-  background: transparent !important;
-  color: var(--text);
-  box-shadow: none !important;
-  transform: none !important;
+.combobox-item.selected {
+  font-weight: 700;
 }
 
-.multiselect-checkbox {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  margin-right: 6px;
-  color: var(--accent);
-  font-weight: 800;
+.combobox-check {
   flex-shrink: 0;
+  opacity: 0;
+  color: var(--accent-text);
+}
+
+.combobox-item.selected .combobox-check {
+  opacity: 1;
+}
+
+.combobox-empty {
+  padding: 16px 10px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+/* semua kontrol form satu baris sama tinggi */
+.form-grid .form-field > input:not([type="checkbox"]):not([type="radio"]),
+.form-grid .form-field > select,
+.duration-preview {
+  height: 46px;
+}
+
+.duration-preview {
+  display: flex;
+  align-items: center;
 }
 
 /* ==========================================================
@@ -2570,7 +2607,7 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
   table {
-    font-size: 12px;
+    font-size: var(--fs-xs);
   }
   th,
   td {
@@ -2588,8 +2625,7 @@ tbody tr:last-child td {
     padding: 16px;
     margin-top: 6px;
   }
-  .searchable-dropdown,
-  .export-kategori-dropdown {
+  .combobox-list {
     max-height: 35vh;
   }
   .login-page {
@@ -2647,7 +2683,7 @@ tbody tr:last-child td {
   .sidebar-brand {
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 20px;
-    padding: 0 8px 22px;
+    padding: 0 8px 24px;
   }
 
   .brand-subtitle {
@@ -2662,8 +2698,6 @@ tbody tr:last-child td {
 
   .nav-item {
     white-space: normal;
-    padding: 10px 12px;
-    font-size: 13.5px;
   }
 
   .sidebar-footer {
@@ -2675,11 +2709,11 @@ tbody tr:last-child td {
   }
 
   .topbar {
-    padding: 14px 16px 14px 64px;
+    padding: 16px 16px 16px 64px;
   }
 
   .topbar h1 {
-    font-size: 17px;
+    font-size: var(--fs-lg);
   }
 
   .page-content {
@@ -2688,11 +2722,11 @@ tbody tr:last-child td {
 
   .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
+    gap: 12px;
   }
 
   .stat-card {
-    padding: 14px;
+    padding: 16px;
   }
 
   .logbook-form,
@@ -2700,27 +2734,10 @@ tbody tr:last-child td {
   .card {
     padding: 16px;
   }
-  .logbook-table-wrap .action-btns {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    gap: 6px;
-    width: 100%;
-  }
-
-  .logbook-table-wrap .action-btns button {
-    flex: none;
-    width: 100%;
-    min-height: 34px;
-    padding: 6px 8px;
-    font-size: 11.5px;
-    white-space: nowrap;
-    justify-content: center;
-  }
-
   .card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
   }
 
   .range-toggle {
@@ -2756,23 +2773,19 @@ tbody tr:last-child td {
     width: 100%;
   }
 
-  .export-kategori-actions button {
-    width: auto;
-  }
-
   .logbook-summary {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 12px;
   }
 
   .summary-card {
-    padding: 14px;
+    padding: 16px;
   }
 
   .activity-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: 8px;
   }
 
   .table-scroll {
@@ -2833,7 +2846,7 @@ tbody tr:last-child td {
     white-space: normal;
   }
 
-  .searchable-dropdown {
+  .combobox-list {
     max-height: 45vh;
   }
 
@@ -2843,15 +2856,16 @@ tbody tr:last-child td {
 
   .form-field input,
   .form-field select,
-  .form-field textarea,
-  .searchable-select input,
+    .form-field textarea,
+  .combobox-popover .combobox-search input,
+  .combobox-trigger,
   .filter-field input,
   .export-bar input,
   .month-picker select,
   .login-form input,
   .login-input-wrap input,
   .master-search-input {
-    font-size: 16px;
+    font-size: var(--fs-md);
   }
 
   button,
@@ -2862,7 +2876,11 @@ tbody tr:last-child td {
     min-height: 40px;
   }
 
-  .action-btns button,
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
   .master-list-actions button {
     min-height: 38px;
   }
@@ -2890,30 +2908,29 @@ tbody tr:last-child td {
   .brand-mark {
     width: 28px;
     height: 28px;
-    font-size: 11px;
   }
 
   .nav-icon {
-    font-size: 13px;
+    font-size: var(--fs-sm);
   }
 
   .logbook-form,
   .logbook-table-wrap,
   .card {
-    padding: 14px;
+    padding: 16px;
   }
 
   .modal-box {
-    padding: 14px;
+    padding: 16px;
   }
 }
 
 @media (max-width: 340px) {
   .topbar h1 {
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
   .login-form {
-    padding: 22px 18px;
+    padding: 24px 20px;
   }
   .stats-grid {
     grid-template-columns: 1fr;
@@ -2941,7 +2958,7 @@ tbody tr:last-child td {
   background: var(--card-bg);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 22px 24px;
+  padding: 24px 24px;
   margin-bottom: var(--spd-gap);
   box-shadow: var(--shadow-hard-sm);
   animation: fadeInUp 0.45s var(--ease) both;
@@ -2958,19 +2975,40 @@ tbody tr:last-child td {
 
 .spd-card-head h2 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: var(--fs-md);
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 
 .spd-empty {
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   text-align: center;
   padding: 28px 0;
   margin: 0;
+}
+
+/* ---------- Trend Helpdesk: 2 card per baris, 1 kolom di layar sempit ---------- */
+.trend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0) supaya recharts bisa mengecil */
+  gap: var(--spd-gap);
+}
+
+.trend-grid > .spd-card {
+  margin-bottom: 0;
+}
+
+.trend-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .trend-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Filter ---------- */
@@ -2978,6 +3016,10 @@ tbody tr:last-child td {
   padding: 16px;
   background: var(--surface-1);
   border: 2px solid var(--border-soft);
+  /* animasi fadeInUp bikin tiap card jadi stacking context sendiri;
+     tanpa z-index, dropdown Bulan/Tahun ketutup card di bawahnya */
+  position: relative;
+  z-index: 5;
 }
 
 .spd-filter-bar {
@@ -2990,42 +3032,30 @@ tbody tr:last-child td {
 .spd-filter-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .spd-filter-field label {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
-.spd-filter-field select {
-  padding: 9px 11px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 14px;
-  font-family: inherit;
+.spd-filter-field .combobox {
+  min-width: 150px;
+}
+
+.spd-filter-field .combobox-trigger {
+  height: 40px;
+  min-height: 40px;
   font-weight: 600;
-  min-width: 132px;
-  cursor: pointer;
-  transition:
-    transform 0.15s var(--ease-snap),
-    box-shadow 0.15s var(--ease);
-}
-
-.spd-filter-field select:focus {
-  outline: none;
-  box-shadow: var(--shadow-hard-sm);
-  transform: translate(-1px, -1px);
 }
 
 .spd-filter-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-left: auto;
 }
 
@@ -3043,7 +3073,7 @@ tbody tr:last-child td {
 .spd-summary-row {
   display: flex;
   align-items: stretch;
-  gap: 14px;
+  gap: 16px;
   margin-bottom: var(--spd-gap);
   overflow-x: auto;
 }
@@ -3058,7 +3088,7 @@ tbody tr:last-child td {
   background: var(--card-bg);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 16px 18px;
+  padding: 16px 20px;
   box-shadow: var(--shadow-hard-sm);
   transition:
     transform 0.2s var(--ease-snap),
@@ -3071,8 +3101,8 @@ tbody tr:last-child td {
 }
 
 .spd-summary-value {
-  font-size: clamp(18px, 1.3vw + 13px, 24px);
-  font-weight: 800;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
   white-space: nowrap;
@@ -3081,15 +3111,15 @@ tbody tr:last-child td {
 }
 
 .spd-summary-value-name {
-  font-size: 16px;
+  font-size: var(--fs-md);
 }
 
 .spd-summary-label {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   color: var(--muted);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
@@ -3100,7 +3130,7 @@ tbody tr:last-child td {
 /* ---------- Toggle jumlah/rata-rata ---------- */
 .spd-toggle {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -3108,8 +3138,8 @@ tbody tr:last-child td {
   background: var(--surface-1);
   color: var(--text);
   border: 2px solid var(--ink);
-  padding: 6px 14px;
-  font-size: 11.5px;
+  padding: 6px 16px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   box-shadow: 2px 2px 0 var(--shadow-color);
 }
@@ -3134,14 +3164,14 @@ tbody tr:last-child td {
 .spd-chart-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .spd-chart-row {
   display: grid;
   grid-template-columns: minmax(120px, 180px) 1fr auto;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   animation: fadeInUp 0.35s var(--ease) both;
 }
 
@@ -3149,9 +3179,14 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  min-width: 0;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--text);
+}
+
+.spd-chart-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3162,7 +3197,6 @@ tbody tr:last-child td {
   height: 10px;
   border-radius: 50%;
   background: var(--surface-2);
-  border: 1.5px solid var(--ink);
   flex-shrink: 0;
 }
 
@@ -3178,22 +3212,21 @@ tbody tr:last-child td {
 
 .spd-chart-track {
   position: relative;
-  height: 20px;
+  height: 10px;
   background: var(--surface-1);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .spd-chart-fill {
   height: 100%;
   background: var(--accent);
-  border-right: 2px solid var(--ink);
+  border-radius: 999px;
   transition: width 0.4s var(--ease);
 }
 
 .spd-chart-value {
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--muted);
   white-space: nowrap;
@@ -3202,7 +3235,7 @@ tbody tr:last-child td {
 }
 
 .spd-tag-inactive {
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   color: var(--muted);
   background: var(--c-neutral-bg);
@@ -3223,22 +3256,22 @@ tbody tr:last-child td {
 .spd-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .spd-table th,
 .spd-table td {
   text-align: left;
-  padding: 11px 13px;
+  padding: 12px 12px;
   border-bottom: 1.5px solid var(--border-soft);
   white-space: nowrap;
 }
 
 .spd-table th {
-  background: var(--shadow-color);
+  background: var(--th-bg);
   color: #fff;
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -3251,10 +3284,10 @@ tbody tr:last-child td {
   background: var(--surface-1);
 }
 
-.spd-name-cell {
+.spd-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   white-space: normal;
 }
 
@@ -3263,13 +3296,13 @@ tbody tr:last-child td {
   align-items: center;
   justify-content: center;
   min-width: 30px;
-  padding: 3px 9px;
+  padding: 3px 8px;
   border: 1.5px solid var(--ink);
   border-radius: 20px;
   background: var(--surface-1);
   color: var(--text);
-  font-weight: 800;
-  font-size: 12px;
+  font-weight: 700;
+  font-size: var(--fs-xs);
 }
 
 .spd-rank.rank-1 {
@@ -3287,13 +3320,19 @@ tbody tr:last-child td {
 
 .spd-badge {
   display: inline-block;
-  padding: 4px 11px;
+  padding: 4px 12px;
   border: 1.5px solid var(--ink);
   border-radius: 20px;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+}
+
+.spd-badge.spd-badge.is-zero {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border-soft);
 }
 
 .spd-badge-selesai {
@@ -3326,16 +3365,6 @@ tbody tr:last-child td {
   border-bottom: 2px solid var(--ink);
 }
 
-/* ---------- Grafik bar — track lebih tegas ---------- */
-.spd-chart-track {
-  height: 18px;
-  border-radius: var(--radius);
-}
-
-.spd-chart-fill {
-  border-right: 2px solid var(--ink);
-}
-
 .spd-chart-row {
   padding: 4px 6px;
   border-radius: var(--radius);
@@ -3347,7 +3376,7 @@ tbody tr:last-child td {
 }
 
 .spd-chart-row:hover .spd-chart-label {
-  color: var(--accent-dark);
+  color: var(--accent-text);
 }
 
 /* ---------- Tabel ranking — angka rata kanan, badge rata tengah ---------- */
@@ -3357,7 +3386,7 @@ tbody tr:last-child td {
   .spd-table td:nth-child(5) {
     text-align: right;
     font-variant-numeric: tabular-nums;
-    font-weight: 800;
+    font-weight: 700;
   }
 
   .spd-table th:nth-child(3),
@@ -3405,7 +3434,7 @@ tbody tr:last-child td {
     align-items: stretch;
   }
 
-  .spd-filter-field select {
+  .spd-filter-field .combobox {
     width: 100%;
   }
 
@@ -3420,18 +3449,18 @@ tbody tr:last-child td {
 
   .spd-summary-row {
     flex-wrap: wrap;
-    row-gap: 10px;
+    row-gap: 12px;
   }
 
   .spd-summary-item {
     min-width: calc(50% - 7px);
-    padding: 14px;
+    padding: 16px;
   }
 
   .spd-card-head {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
   }
 
   .spd-toggle {
@@ -3443,7 +3472,7 @@ tbody tr:last-child td {
 
   .spd-chart-row {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 8px;
   }
 
   .spd-chart-value {
@@ -3467,6 +3496,7 @@ tbody tr:last-child td {
   .spd-table td {
     display: block;
     width: 100%;
+    min-width: 0; /* abaikan table { min-width } global di layar kecil */
     white-space: normal;
   }
 
@@ -3474,7 +3504,7 @@ tbody tr:last-child td {
     border: 2px solid var(--ink);
     border-radius: var(--radius);
     margin-bottom: 12px;
-    padding: 4px 14px;
+    padding: 4px 16px;
     box-shadow: var(--shadow-hard-sm);
   }
 
@@ -3486,8 +3516,8 @@ tbody tr:last-child td {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 9px 0;
+    gap: 12px;
+    padding: 8px 0;
     border-bottom: 1.5px solid var(--border-soft);
     text-align: right;
   }
@@ -3498,21 +3528,34 @@ tbody tr:last-child td {
 
   .spd-table td::before {
     content: attr(data-label);
-    font-size: 11px;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
     text-align: left;
   }
 
-  .spd-name-cell {
+  .spd-name {
     justify-content: flex-end;
   }
 }
 
 @media (max-width: 400px) {
   .spd-summary-item {
+    padding: 12px;
+  }
+
+  /* kartu "Teratas" memuat nama, beri satu baris penuh */
+  .spd-summary-item:last-child {
     min-width: 100%;
   }
+}
+
+/* ===================================================
+   FORM LAYOUT — Neo-brutalism
+   =================================================== */
+.logbook-form button[type="submit"] {
+  margin-top: 24px;
+  min-width: 180px;
 }

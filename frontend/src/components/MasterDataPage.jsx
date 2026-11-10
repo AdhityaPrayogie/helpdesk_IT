@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, X, Plus, Power, PowerOff, Trash2 } from "lucide-react";
 import {
   getPic,
@@ -91,13 +91,7 @@ export default function MasterDataPage() {
   const [confirmState, setConfirmState] = useState(null); // { type: 'toggle' | 'delete', item }
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  useEffect(() => {
-    loadItems();
-    setErrorMsg("");
-    setSearch(""); // reset pencarian setiap ganti tab
-  }, [activeTab]);
-
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true);
     try {
       const res = await CONFIG[activeTab].get(true);
@@ -108,7 +102,13 @@ export default function MasterDataPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    loadItems();
+    setErrorMsg("");
+    setSearch(""); // reset pencarian setiap ganti tab
+  }, [loadItems]);
 
   const handleAddSubmit = async (nama) => {
     const cfg = CONFIG[activeTab];

@@ -9,8 +9,8 @@ router.get("/", async (req, res) => {
   try {
     const showAll = req.query.all === "1" || req.query.all === "true";
     const sql = showAll
-      ? "SELECT id, nama, aktif FROM staff_it ORDER BY nama ASC"
-      : "SELECT id, nama, aktif FROM staff_it WHERE aktif = 1 ORDER BY nama ASC";
+      ? "SELECT id, nama, aktif FROM it_staff_it ORDER BY nama ASC"
+      : "SELECT id, nama, aktif FROM it_staff_it WHERE aktif = 1 ORDER BY nama ASC";
     const [rows] = await pool.query(sql);
     res.json(rows);
   } catch (err) {
@@ -22,7 +22,7 @@ router.get("/", async (req, res) => {
 router.put("/:id", requireRole("super_admin"), async (req, res) => {
   try {
     const { aktif } = req.body;
-    await pool.query("UPDATE staff_it SET aktif = ? WHERE id = ?", [
+    await pool.query("UPDATE it_staff_it SET aktif = ? WHERE id = ?", [
       aktif ? 1 : 0,
       req.params.id,
     ]);
@@ -40,7 +40,7 @@ router.post("/", requireRole("super_admin"), async (req, res) => {
       return res.status(400).json({ message: "Nama staff IT wajib diisi" });
     }
     const [result] = await pool.query(
-      "INSERT INTO staff_it (nama) VALUES (?)",
+      "INSERT INTO it_staff_it (nama) VALUES (?)",
       [nama.trim()],
     );
     res.status(201).json({ id: result.insertId, nama });
@@ -52,13 +52,13 @@ router.post("/", requireRole("super_admin"), async (req, res) => {
 
 router.delete("/:id", requireRole("super_admin"), async (req, res) => {
   try {
-    await pool.query("DELETE FROM staff_it WHERE id = ?", [req.params.id]);
+    await pool.query("DELETE FROM it_staff_it WHERE id = ?", [req.params.id]);
     res.json({ message: "Staff IT berhasil dihapus permanen" });
   } catch (err) {
     if (err.code === "ER_ROW_IS_REFERENCED_2" || err.errno === 1451) {
       return res.status(409).json({
         message:
-          "Tidak bisa dihapus permanen karena masih dipakai di data logbook. Nonaktifkan saja.",
+          "Tidak bisa dihapus permanen karena masih dipakai di data it_logbook. Nonaktifkan saja.",
       });
     }
     console.error(err);

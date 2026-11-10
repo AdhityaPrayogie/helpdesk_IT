@@ -231,13 +231,15 @@ export default function UsersPage() {
                   >
                     Reset Password
                   </button>
-                  <button
-                    type="button"
-                    className={u.is_active ? "btn-danger" : "btn-secondary"}
-                    onClick={() => handleToggleActive(u)}
-                  >
-                    {u.is_active ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
+                  {u.id !== currentUser?.id && (
+                    <button
+                      type="button"
+                      className={u.is_active ? "btn-danger" : "btn-secondary"}
+                      onClick={() => handleToggleActive(u)}
+                    >
+                      {u.is_active ? "Nonaktifkan" : "Aktifkan"}
+                    </button>
+                  )}
                   {u.id !== currentUser?.id && (
                     <button
                       type="button"
@@ -266,6 +268,7 @@ export default function UsersPage() {
         <UserFormModal
           mode="edit"
           initialData={editTarget}
+          isSelf={editTarget.id === currentUser?.id}
           onClose={() => setEditTarget(null)}
           onSubmit={handleEditSubmit}
         />

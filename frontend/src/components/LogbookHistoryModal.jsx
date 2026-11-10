@@ -28,23 +28,33 @@ export default function LogbookHistoryModal({ logbookId, onClose }) {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    loadHistory();
-  }, [logbookId]);
+    let isMounted = true;
+    const loadHistory = async () => {
+      setLoading(true);
+      setErrorMsg("");
+      try {
+        const res = await getLogbookHistory(logbookId);
+        if (isMounted) {
+          // Tampilkan yang paling baru di atas
+          setHistory([...res.data].reverse());
+        }
+      } catch (err) {
+        console.error(err);
+        if (isMounted) {
+          setErrorMsg("Gagal memuat riwayat perubahan.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const loadHistory = async () => {
-    setLoading(true);
-    setErrorMsg("");
-    try {
-      const res = await getLogbookHistory(logbookId);
-      // Tampilkan yang paling baru di atas
-      setHistory([...res.data].reverse());
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Gagal memuat riwayat perubahan.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadHistory();
+    return () => {
+      isMounted = false;
+    };
+  }, [logbookId]);
 
   const modalContent = (
     <div className="modal-backdrop" onClick={onClose}>

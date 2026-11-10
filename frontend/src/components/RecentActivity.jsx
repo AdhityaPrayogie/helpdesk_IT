@@ -12,7 +12,6 @@ import {
   Pie,
   Legend,
 } from "recharts";
-import { getLogbook } from "../api";
 
 const RANGES = [
   { key: "harian", label: "Hari Ini" },
@@ -139,22 +138,14 @@ function readChartTheme() {
     grid: readCssVar("--chart-grid", "#d5dae8"),
     tick: readCssVar("--chart-tick", "#6b7180"),
     barFill: readCssVar("--chart-bar-fill", "#3556f0"),
-    barStroke: readCssVar("--chart-bar-stroke", "transparent"),
-    barStrokeWidth:
-      parseFloat(readCssVar("--chart-bar-stroke-width", "0")) || 0,
     barRadius: parseFloat(readCssVar("--chart-bar-radius", "6")) || 6,
     pieStroke: readCssVar("--chart-pie-stroke", "#14151f"),
     pieStrokeWidth:
       parseFloat(readCssVar("--chart-pie-stroke-width", "2")) || 0,
     statusColors: {
-      Proses: readCssVar("--chart-proses", "#ffff00"),
-      Selesai: readCssVar("--chart-selesai", "#00ff66"),
-      Batal: readCssVar("--chart-batal", "#ff3366"),
-    },
-    statusTextColors: {
-      Proses: readCssVar("--chart-proses-text", "#000000"),
-      Selesai: readCssVar("--chart-selesai-text", "#000000"),
-      Batal: readCssVar("--chart-batal-text", "#000000"),
+      Proses: readCssVar("--chart-proses", "#f59e0b"),
+      Selesai: readCssVar("--chart-selesai", "#0d9488"),
+      Batal: readCssVar("--chart-batal", "#e11d48"),
     },
   };
 }
@@ -170,7 +161,7 @@ function readChartTheme() {
 // selesai dimuat. Makanya di sini kita dengarkan event "load" dari
 // <link> stylesheet itu sendiri, plus fallback observer kalau elemen
 // <link>-nya baru dibuat setelah komponen ini mount duluan.
-function useChartTheme() {
+export function useChartTheme() {
   const [theme, setTheme] = useState(readChartTheme);
 
   useEffect(() => {
@@ -212,7 +203,7 @@ function useChartTheme() {
 // diambil dari class CSS (.chart-tooltip dkk), bukan inline style, jadi
 // otomatis ikut tema lewat --chart-tooltip-* di style.css.
 // ---------------------------------------------------------------------
-function ChartTooltipCard({ active, payload, label, valueSuffix = "" }) {
+export function ChartTooltipCard({ active, payload, label, valueSuffix = "" }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div className="chart-tooltip">
@@ -241,7 +232,7 @@ function ChartTooltipCard({ active, payload, label, valueSuffix = "" }) {
   );
 }
 
-function ChartLegendList({ data, colors, textColors }) {
+function ChartLegendList({ data, colors }) {
   return (
     <div className="chart-legend">
       {data.map((item) => (
@@ -250,12 +241,7 @@ function ChartLegendList({ data, colors, textColors }) {
             className="chart-legend-dot"
             style={{ background: colors[item.name] }}
           />
-          <span
-            className="chart-legend-label"
-            style={{ color: textColors[item.name] }}
-          >
-            {item.name}
-          </span>
+          <span className="chart-legend-label">{item.name}</span>
           <span className="chart-legend-count">{item.value}</span>
         </div>
       ))}
@@ -263,14 +249,16 @@ function ChartLegendList({ data, colors, textColors }) {
   );
 }
 
-export default function RecentActivity({ refreshTrigger, onSeeAll }) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function RecentActivity({
+  rows,
+  loading,
+  onSeeAll,
+  selectedMonth,
+  selectedYear,
+  setSelectedMonth,
+  setSelectedYear,
+}) {
   const [range, setRange] = useState("mingguan");
-
-  const today = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
   const [hoverBarIndex, setHoverBarIndex] = useState(null);
   const [pieHover, setPieHover] = useState(false);
@@ -281,22 +269,6 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
 
   const chartTheme = useChartTheme();
   const gradientId = useId().replace(/:/g, "");
-
-  useEffect(() => {
-    load();
-  }, [refreshTrigger]);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await getLogbook();
-      setRows(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const rangeDates = useMemo(
     () => getRangeDates(range, { year: selectedYear, month: selectedMonth }),
@@ -350,7 +322,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
         : `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
 
   const yearOptions = useMemo(() => {
-    const current = today.getFullYear();
+    const current = new Date().getFullYear();
     return [current, current - 1, current - 2];
   }, []);
 
@@ -471,7 +443,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                 <XAxis
                   dataKey="label"
                   tick={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 600,
                     fill: chartTheme.tick,
                   }}
@@ -481,7 +453,7 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: chartTheme.tick }}
+                  tick={{ fontSize: 12, fill: chartTheme.tick }}
                   axisLine={false}
                   tickLine={false}
                   width={28}
@@ -493,9 +465,8 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                 <Bar
                   dataKey="count"
                   name="Tiket"
-                  radius={[chartTheme.barRadius, chartTheme.barRadius, 2, 2]}
-                  stroke={chartTheme.barStroke}
-                  strokeWidth={chartTheme.barStrokeWidth}
+                  radius={[chartTheme.barRadius, chartTheme.barRadius, 0, 0]}
+                  maxBarSize={36}
                   cursor="pointer"
                   onMouseEnter={(_, idx) => setHoverBarIndex(idx)}
                   onClick={(data) => {
@@ -543,10 +514,10 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                       nameKey="name"
                       innerRadius={donutInnerRadius}
                       outerRadius={donutOuterRadius}
-                      paddingAngle={4}
+                      paddingAngle={2}
                       stroke={chartTheme.pieStroke}
                       strokeWidth={chartTheme.pieStrokeWidth}
-                      cornerRadius={6}
+                      cornerRadius={4}
                       onMouseEnter={() => setPieHover(true)}
                       onMouseLeave={() => setPieHover(false)}
                     >
@@ -567,7 +538,6 @@ export default function RecentActivity({ refreshTrigger, onSeeAll }) {
                         <ChartLegendList
                           data={statusData}
                           colors={chartTheme.statusColors}
-                          textColors={chartTheme.statusTextColors}
                         />
                       }
                     />

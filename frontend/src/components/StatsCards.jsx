@@ -1,41 +1,28 @@
-import { useState, useEffect } from "react";
-import { getLogbook } from "../api";
+import { useMemo } from "react";
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
-export default function StatsCards({ refreshTrigger }) {
-  const [stats, setStats] = useState({
-    total: 0,
-    proses: 0,
-    selesai: 0,
-    batal: 0,
-    hariIni: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadStats();
-  }, [refreshTrigger]);
-
-  const loadStats = async () => {
-    setLoading(true);
-    try {
-      const res = await getLogbook();
-      const rows = res.data;
-      const today = todayStr();
-      setStats({
-        total: rows.length,
-        proses: rows.filter((r) => r.status === "Proses").length,
-        selesai: rows.filter((r) => r.status === "Selesai").length,
-        batal: rows.filter((r) => r.status === "Batal").length,
-        hariIni: rows.filter((r) => r.tanggal?.slice(0, 10) === today).length,
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function StatsCards({ rows, loading, month, year }) {
+  const stats = useMemo(() => {
+    const today = todayStr();
+    const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const monthRows = rows.filter((r) => r.tanggal?.slice(0, 7) === prefix);
+    const count = (status) =>
+      monthRows.filter((r) => r.status === status).length;
+    return {
+      total: monthRows.length,
+      proses: count("Proses"),
+      selesai: count("Selesai"),
+      batal: count("Batal"),
+      hariIni: rows.filter((r) => r.tanggal?.slice(0, 10) === today).length,
+    };
+  }, [rows, month, year]);
 
   const cards = [
     { label: "Total Helpdesk", value: stats.total, tone: "default" },

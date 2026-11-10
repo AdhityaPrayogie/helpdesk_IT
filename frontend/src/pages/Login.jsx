@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,8 +8,14 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +42,7 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="login-form">
         <div className="login-brand">
-          <div className="login-brand-mark">IT</div>
+          <img className="login-brand-mark" src="/Helpdesk.svg" alt="" />
           <div>
             <h1>IT Logbook</h1>
             <p>Masuk untuk melanjutkan</p>

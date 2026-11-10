@@ -6,6 +6,7 @@ import {
   FilePlus2,
   ClipboardList,
   BarChart3,
+  TrendingUp,
   Settings,
   Users,
   Menu,
@@ -24,6 +25,7 @@ export default function Sidebar() {
     { to: "/input", label: "Input Helpdesk", icon: FilePlus2 },
     { to: "/data", label: "Data Logbook", icon: ClipboardList },
     { to: "/performa-staff", label: "Performa Staff", icon: BarChart3 },
+    { to: "/trend-helpdesk", label: "Trend Helpdesk", icon: TrendingUp },
     ...(isSuperAdmin
       ? [
           { to: "/master-data", label: "Master Data", icon: Settings },
@@ -62,7 +64,7 @@ export default function Sidebar() {
 
       <aside className={`sidebar ${isOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-brand">
-          <div className="brand-mark">IT</div>
+          <img className="brand-mark" src="/Helpdesk.svg" alt="" />
           <div>
             <div className="brand-title">Logbook</div>
             <div className="brand-subtitle">Helpdesk System</div>

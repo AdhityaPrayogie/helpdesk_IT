@@ -2,8 +2,21 @@ import axios from "axios";
 
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
+  // Jika diakses lewat IP jaringan (misal http://192.168.x.x:5000) dan envUrl mengarah ke localhost,
+  // jangan pakai localhost karena localhost di browser mengarah ke perangkat client sendiri.
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1" &&
+    envUrl &&
+    envUrl.includes("localhost")
+  ) {
+    return "/api";
+  }
+
   if (envUrl) return `${envUrl.replace(/\/$/, "")}/api`;
-  return "http://localhost:5000/api";
+  // Default: relative path "/api" (cocok untuk produksi dan vite proxy dev)
+  return "/api";
 };
 
 const api = axios.create({
@@ -17,8 +30,12 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isAuthCheck = error.config?.url?.includes("/auth/me");
-    if (error.response?.status === 401 && !isAuthCheck) {
+    const url = error.config?.url || "";
+    const isAuthEndpoint =
+      url.includes("/auth/me") || url.includes("/auth/login");
+    const isAlreadyOnLogin =
+      typeof window !== "undefined" && window.location.pathname === "/login";
+    if (error.response?.status === 401 && !isAuthEndpoint && !isAlreadyOnLogin) {
       window.location.href = "/login";
     }
     return Promise.reject(error);

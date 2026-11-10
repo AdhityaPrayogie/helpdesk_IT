@@ -5,11 +5,21 @@ const jwt = require("jsonwebtoken");
 const pool = require("../db/pool");
 const { verifyToken } = require("../middleware/auth");
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 24 * 60 * 60 * 1000,
+const getCookieOptions = (req) => {
+  // Hanya pakai secure jika koneksi lewat HTTPS (SSL/ngrok HTTPS) atau diset via env COOKIE_SECURE=true.
+  // Di HTTP biasa (seperti http://192.168.1.202:5000 atau localhost:5000),
+  // secure WAJIB false dan sameSite WAJIB "lax", karena browser (Chrome dll) menolak cookie secure di HTTP non-SSL.
+  const isHttps =
+    req.secure ||
+    req.headers["x-forwarded-proto"] === "https" ||
+    process.env.COOKIE_SECURE === "true";
+
+  return {
+    httpOnly: true,
+    secure: Boolean(isHttps),
+    sameSite: isHttps ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  };
 };
 
 router.post("/login", async (req, res) => {
@@ -22,7 +32,7 @@ router.post("/login", async (req, res) => {
     }
 
     const [rows] = await pool.query(
-      "SELECT * FROM users WHERE email = ? AND is_active = 1",
+      "SELECT * FROM it_users WHERE email = ? AND is_active = 1",
       [email],
     );
     const user = rows[0];
@@ -46,7 +56,7 @@ router.post("/login", async (req, res) => {
       expiresIn: process.env.JWT_EXPIRES_IN || "1d",
     });
 
-    res.cookie("token", token, COOKIE_OPTIONS);
+    res.cookie("token", token, getCookieOptions(req));
     res.json({ message: "Login berhasil", user: payload });
   } catch (err) {
     console.error(err);
@@ -55,7 +65,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
-  res.clearCookie("token", COOKIE_OPTIONS);
+  res.clearCookie("token", getCookieOptions(req));
   res.json({ message: "Logout berhasil" });
 });
 

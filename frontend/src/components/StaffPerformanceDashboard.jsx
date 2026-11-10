@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { getLogbook, getStaffIt } from "../api";
+import Combobox from "./Combobox";
 
 const MONTH_NAMES = [
   "Januari",
@@ -15,6 +16,8 @@ const MONTH_NAMES = [
   "November",
   "Desember",
 ];
+
+const BULAN_OPTIONS = MONTH_NAMES.map((nama, id) => ({ id, nama }));
 
 // Hitung tanggal 1 s/d akhir bulan dari bulan+tahun yang dipilih,
 // pakai komponen lokal (bukan toISOString) supaya tidak geser hari.
@@ -61,7 +64,10 @@ export default function StaffPerformanceDashboard() {
 
   const yearOptions = (() => {
     const current = today.getFullYear();
-    return [current, current - 1, current - 2, current - 3];
+    return [current, current - 1, current - 2, current - 3].map((y) => ({
+      id: y,
+      nama: String(y),
+    }));
   })();
 
   useEffect(() => {
@@ -176,35 +182,35 @@ export default function StaffPerformanceDashboard() {
     : "Semua Periode";
 
   return (
-    <div className="page-content spd">
+    <>
+      <header className="topbar">
+        <h1>Performa Staff</h1>
+      </header>
+      <main className="page-content spd">
       {/* ============ FILTER ============ */}
       <div className="spd-card spd-filter-card">
         <form className="spd-filter-bar" onSubmit={handleFilterBulan}>
           <div className="spd-filter-field">
-            <label>Bulan</label>
-            <select
+            <label htmlFor="spd-bulan">Bulan</label>
+            <Combobox
+              id="spd-bulan"
+              searchable={false}
+              clearable={false}
+              options={BULAN_OPTIONS}
               value={filterMonth}
-              onChange={(e) => setFilterMonth(Number(e.target.value))}
-            >
-              {MONTH_NAMES.map((name, idx) => (
-                <option key={name} value={idx}>
-                  {name}
-                </option>
-              ))}
-            </select>
+              onChange={setFilterMonth}
+            />
           </div>
           <div className="spd-filter-field">
-            <label>Tahun</label>
-            <select
+            <label htmlFor="spd-tahun">Tahun</label>
+            <Combobox
+              id="spd-tahun"
+              searchable={false}
+              clearable={false}
+              options={yearOptions}
               value={filterYear}
-              onChange={(e) => setFilterYear(Number(e.target.value))}
-            >
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+              onChange={setFilterYear}
+            />
           </div>
           <div className="spd-filter-actions">
             <button type="submit">Terapkan</button>
@@ -292,12 +298,20 @@ export default function StaffPerformanceDashboard() {
                             idx < 3 ? `is-top-${idx + 1}` : ""
                           }`}
                         />
-                        {s.nama}
+                        <span className="spd-chart-name">{s.nama}</span>
                         {s.aktif === false && (
                           <span className="spd-tag-inactive">nonaktif</span>
                         )}
                       </div>
-                      <div className="spd-chart-track">
+                      <div
+                        className="spd-chart-track"
+                        role="img"
+                        aria-label={`${s.nama}: ${
+                          chartMetric === "jumlah"
+                            ? `${s.jumlah} tiket`
+                            : formatMenit(s.rataRata)
+                        }`}
+                      >
                         <div
                           className="spd-chart-fill"
                           style={{ width: `${pct}%` }}
@@ -356,11 +370,13 @@ export default function StaffPerformanceDashboard() {
                             {idx + 1}
                           </span>
                         </td>
-                        <td data-label="Nama IT" className="spd-name-cell">
-                          {s.nama}
-                          {s.aktif === false && (
-                            <span className="spd-tag-inactive">Nonaktif</span>
-                          )}
+                        <td data-label="Nama IT">
+                          <div className="spd-name">
+                            {s.nama}
+                            {s.aktif === false && (
+                              <span className="spd-tag-inactive">Nonaktif</span>
+                            )}
+                          </div>
                         </td>
                         <td data-label="Tiket">{s.jumlah}</td>
                         <td data-label="Total Durasi">
@@ -370,17 +386,23 @@ export default function StaffPerformanceDashboard() {
                           {formatMenit(s.rataRata)}
                         </td>
                         <td data-label="Selesai">
-                          <span className="spd-badge spd-badge-selesai">
+                          <span
+                            className={`spd-badge spd-badge-selesai ${s.selesai === 0 ? "is-zero" : ""}`}
+                          >
                             {s.selesai}
                           </span>
                         </td>
                         <td data-label="Proses">
-                          <span className="spd-badge spd-badge-proses">
+                          <span
+                            className={`spd-badge spd-badge-proses ${s.proses === 0 ? "is-zero" : ""}`}
+                          >
                             {s.proses}
                           </span>
                         </td>
                         <td data-label="Batal">
-                          <span className="spd-badge spd-badge-batal">
+                          <span
+                            className={`spd-badge spd-badge-batal ${s.batal === 0 ? "is-zero" : ""}`}
+                          >
                             {s.batal}
                           </span>
                         </td>
@@ -393,6 +415,7 @@ export default function StaffPerformanceDashboard() {
           </div>
         </>
       )}
-    </div>
+      </main>
+    </>
   );
 }

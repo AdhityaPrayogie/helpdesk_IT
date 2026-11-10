@@ -13,16 +13,16 @@ const BASE_SELECT = `
         GROUP_CONCAT(DISTINCT s.nama ORDER BY s.nama SEPARATOR ', ') AS nama_it,
         GROUP_CONCAT(DISTINCT s.id ORDER BY s.nama SEPARATOR ',') AS staff_it_ids,
         k.nama AS kategori,
-        u.nama AS unit_kerja,
+        u.nama AS it_unit_kerja,
         l.pic_id, l.kategori_id, l.unit_kerja_id,
         l.isi_helpdesk, l.tindakan, l.status, l.jenis_pelayanan,
         l.created_at
-    FROM logbook l
-    JOIN pic p ON l.pic_id = p.id
-    LEFT JOIN logbook_staff_it lsi ON lsi.logbook_id = l.id
-    LEFT JOIN staff_it s ON s.id = lsi.staff_it_id
-    JOIN kategori_it k ON l.kategori_id = k.id
-    LEFT JOIN unit_kerja u ON l.unit_kerja_id = u.id
+    FROM it_logbook l
+    JOIN it_pic p ON l.pic_id = p.id
+    LEFT JOIN it_logbook_staff_it lsi ON lsi.logbook_id = l.id
+    LEFT JOIN it_staff_it s ON s.id = lsi.staff_it_id
+    JOIN it_kategori_it k ON l.kategori_id = k.id
+    LEFT JOIN it_unit_kerja u ON l.unit_kerja_id = u.id
 `;
 
 // Label yang ditampilkan di riwayat untuk tiap field
@@ -33,7 +33,7 @@ const FIELD_LABELS = {
   nama_pic: "Nama PIC",
   nama_it: "Nama IT",
   kategori: "Kategori",
-  unit_kerja: "Unit Kerja",
+  it_unit_kerja: "Unit Kerja",
   isi_helpdesk: "Isi Helpdesk",
   tindakan: "Tindakan",
   status: "Status",
@@ -73,6 +73,16 @@ function formatJamExport(val) {
   return s.length === 5 ? `${s}:00` : s;
 }
 
+// Hitung total menit dari selisih jam_mulai dan jam_selesai (format HH:MM atau HH:MM:SS)
+function hitungTotalMenit(jamMulai, jamSelesai) {
+  if (!jamMulai || !jamSelesai) return null;
+  const [h1, m1] = String(jamMulai).split(":").map(Number);
+  const [h2, m2] = String(jamSelesai).split(":").map(Number);
+  if (Number.isNaN(h1) || Number.isNaN(m1) || Number.isNaN(h2) || Number.isNaN(m2)) return null;
+  const selisih = h2 * 60 + m2 - (h1 * 60 + m1);
+  return selisih >= 0 ? selisih : null;
+}
+
 // Nama bulan singkat berbahasa Indonesia, dipakai buat nama sheet Excel (mis. "Jul 26")
 const MONTH_SHORT_ID = [
   "Jan",
@@ -105,7 +115,7 @@ function sheetNameFromRange(start, end) {
   return `${MONTH_SHORT_ID[startDate.getMonth()]} ${yy1}-${MONTH_SHORT_ID[endDate.getMonth()]} ${yy2}`;
 }
 
-// Ambil satu baris logbook lengkap (dengan nama PIC/IT/Kategori/Unit Kerja
+// Ambil satu baris it_logbook lengkap (dengan nama PIC/IT/Kategori/Unit Kerja
 // sudah di-join) dan normalisasi jadi objek datar yang mudah dibandingkan
 // serta enak ditampilkan di riwayat.
 async function getNormalizedRow(conn, id) {
@@ -122,7 +132,7 @@ async function getNormalizedRow(conn, id) {
     nama_pic: row.nama_pic || null,
     nama_it: row.nama_it || null,
     kategori: row.kategori || null,
-    unit_kerja: row.unit_kerja || null,
+    it_unit_kerja: row.it_unit_kerja || null,
     isi_helpdesk: row.isi_helpdesk || null,
     tindakan: row.tindakan || null,
     status: row.status || null,
@@ -153,7 +163,7 @@ async function catatRiwayat(conn, { logbookId, aksi, user, changes }) {
   if (changes.length === 0) return;
 
   const [historyResult] = await conn.query(
-    `INSERT INTO logbook_history (logbook_id, aksi, changed_by, changed_by_nama)
+    `INSERT INTO it_logbook_history (logbook_id, aksi, changed_by, changed_by_nama)
          VALUES (?, ?, ?, ?)`,
     [logbookId, aksi, user?.id || null, user?.nama || null],
   );
@@ -168,7 +178,7 @@ async function catatRiwayat(conn, { logbookId, aksi, user, changes }) {
   ]);
 
   await conn.query(
-    `INSERT INTO logbook_history_detail (history_id, field_name, label_field, nilai_lama, nilai_baru)
+    `INSERT INTO it_logbook_history_detail (history_id, field_name, label_field, nilai_lama, nilai_baru)
          VALUES ?`,
     [detailValues],
   );
@@ -199,12 +209,12 @@ router.get("/", async (req, res) => {
         params.push(parseLimit, parseOffset);
       }
     }
-    
+
     const [rows] = await pool.query(sql, params);
     res.json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Gagal mengambil data logbook" });
+    res.status(500).json({ message: "Gagal mengambil data it_logbook" });
   }
 });
 
@@ -248,16 +258,18 @@ router.post("/", async (req, res) => {
     }
 
     const finalStatus = status || "Proses";
+    const totalMenit = hitungTotalMenit(jam_mulai, jam_selesai);
 
     await conn.beginTransaction();
 
     const [result] = await conn.query(
-      `INSERT INTO logbook (tanggal, jam_mulai, jam_selesai, pic_id, staff_it_id, kategori_id, unit_kerja_id, isi_helpdesk, tindakan, status, jenis_pelayanan)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO it_logbook (tanggal, jam_mulai, jam_selesai, total_menit, pic_id, staff_it_id, kategori_id, unit_kerja_id, isi_helpdesk, tindakan, status, jenis_pelayanan)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         tanggal,
         jam_mulai || null,
         jam_selesai || null,
+        totalMenit,
         pic_id,
         staffIds[0],
         kategori_id,
@@ -272,7 +284,7 @@ router.post("/", async (req, res) => {
     const logbookId = result.insertId;
     const relasiValues = staffIds.map((sid) => [logbookId, sid]);
     await conn.query(
-      "INSERT INTO logbook_staff_it (logbook_id, staff_it_id) VALUES ?",
+      "INSERT INTO it_logbook_staff_it (logbook_id, staff_it_id) VALUES ?",
       [relasiValues],
     );
 
@@ -293,7 +305,7 @@ router.post("/", async (req, res) => {
   } catch (err) {
     await conn.rollback();
     console.error(err);
-    res.status(500).json({ message: "Gagal menyimpan logbook" });
+    res.status(500).json({ message: "Gagal menyimpan it_logbook" });
   } finally {
     conn.release();
   }
@@ -341,7 +353,7 @@ router.put("/:id", async (req, res) => {
     await conn.beginTransaction();
 
     // Kunci baris & ambil kondisi sebelum diubah (lengkap dengan nama-nama join)
-    await conn.query("SELECT id FROM logbook WHERE id = ? FOR UPDATE", [
+    await conn.query("SELECT id FROM it_logbook WHERE id = ? FOR UPDATE", [
       req.params.id,
     ]);
     const oldRow = await getNormalizedRow(conn, req.params.id);
@@ -350,13 +362,16 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Logbook tidak ditemukan" });
     }
 
+    const totalMenit = hitungTotalMenit(jam_mulai, jam_selesai);
+
     await conn.query(
-      `UPDATE logbook SET tanggal=?, jam_mulai=?, jam_selesai=?, pic_id=?, staff_it_id=?, kategori_id=?, unit_kerja_id=?, isi_helpdesk=?, tindakan=?, status=?, jenis_pelayanan=?
+      `UPDATE it_logbook SET tanggal=?, jam_mulai=?, jam_selesai=?, total_menit=?, pic_id=?, staff_it_id=?, kategori_id=?, unit_kerja_id=?, isi_helpdesk=?, tindakan=?, status=?, jenis_pelayanan=?
              WHERE id=?`,
       [
         tanggal,
         jam_mulai || null,
         jam_selesai || null,
+        totalMenit,
         pic_id,
         staffIds[0],
         kategori_id,
@@ -369,12 +384,12 @@ router.put("/:id", async (req, res) => {
       ],
     );
 
-    await conn.query("DELETE FROM logbook_staff_it WHERE logbook_id = ?", [
+    await conn.query("DELETE FROM it_logbook_staff_it WHERE logbook_id = ?", [
       req.params.id,
     ]);
     const relasiValues = staffIds.map((sid) => [req.params.id, sid]);
     await conn.query(
-      "INSERT INTO logbook_staff_it (logbook_id, staff_it_id) VALUES ?",
+      "INSERT INTO it_logbook_staff_it (logbook_id, staff_it_id) VALUES ?",
       [relasiValues],
     );
 
@@ -393,7 +408,7 @@ router.put("/:id", async (req, res) => {
   } catch (err) {
     await conn.rollback();
     console.error(err);
-    res.status(500).json({ message: "Gagal memperbarui logbook" });
+    res.status(500).json({ message: "Gagal memperbarui it_logbook" });
   } finally {
     conn.release();
   }
@@ -401,11 +416,11 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    await pool.query("DELETE FROM logbook WHERE id = ?", [req.params.id]);
+    await pool.query("DELETE FROM it_logbook WHERE id = ?", [req.params.id]);
     res.json({ message: "Logbook berhasil dihapus" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Gagal menghapus logbook" });
+    res.status(500).json({ message: "Gagal menghapus it_logbook" });
   }
 });
 
@@ -413,7 +428,7 @@ router.get("/:id/history", async (req, res) => {
   try {
     const [historyRows] = await pool.query(
       `SELECT id, aksi, changed_by_nama, created_at
-             FROM logbook_history
+             FROM it_logbook_history
              WHERE logbook_id = ?
              ORDER BY created_at ASC, id ASC`,
       [req.params.id],
@@ -426,7 +441,7 @@ router.get("/:id/history", async (req, res) => {
     const historyIds = historyRows.map((h) => h.id);
     const [detailRows] = await pool.query(
       `SELECT history_id, field_name, label_field, nilai_lama, nilai_baru
-             FROM logbook_history_detail
+             FROM it_logbook_history_detail
              WHERE history_id IN (?)
              ORDER BY id ASC`,
       [historyIds],
@@ -449,7 +464,7 @@ router.get("/:id/history", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Gagal mengambil riwayat logbook" });
+    res.status(500).json({ message: "Gagal mengambil riwayat it_logbook" });
   }
 });
 
@@ -494,7 +509,8 @@ router.get("/export/xlsx", async (req, res) => {
       { header: "waktu mulai pengerjaan", key: "waktu_mulai", width: 21 },
       { header: "waktu selesai pengerjaan", key: "waktu_selesai", width: 22 },
       { header: "waktu selesai (Menit)", key: "menit", width: 19 },
-      { header: "PIC", key: "pic", width: 26 },
+      { header: "Unit Kerja", key: "unit_kerja", width: 26 },
+      { header: "PIC", key: "it_pic", width: 26 },
       { header: "Customer", key: "customer", width: 40 },
       { header: "Kategori", key: "kategori_pelayanan", width: 15 },
     ];
@@ -530,21 +546,22 @@ router.get("/export/xlsx", async (req, res) => {
         waktu_mulai: formatJamExport(row.jam_mulai),
         waktu_selesai: formatJamExport(row.jam_selesai),
         menit,
-        pic: row.nama_it,
+        unit_kerja: row.it_unit_kerja,
+        it_pic: row.nama_it,
         customer: row.nama_pic,
         kategori_pelayanan: row.jenis_pelayanan,
       });
 
       dataRow.eachCell((cell, colNumber) => {
         cell.font = { size: 11, name: "Calibri" };
-        // Kolom "Nama Kegiatan"(3), "PIC"(8), "Customer"(9) rata kiri, sisanya rata tengah
+        // Kolom "Nama Kegiatan"(3), "Unit Kerja"(8), "PIC"(9), "Customer"(10) rata kiri, sisanya rata tengah
         cell.alignment = {
-          horizontal: [3, 8, 9].includes(colNumber) ? "left" : "center",
+          horizontal: [3, 8, 9, 10].includes(colNumber) ? "left" : "center",
           vertical: "middle",
         };
       });
       // Kolom Kategori (Pelayanan/Non Pelayanan): bold biru, meniru file contoh
-      const kategoriCell = dataRow.getCell(10);
+      const kategoriCell = dataRow.getCell(11);
       kategoriCell.font = {
         bold: true,
         size: 10,

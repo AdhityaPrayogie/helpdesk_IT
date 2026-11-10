@@ -10,7 +10,7 @@ router.use(verifyToken, requireRole("super_admin"));
 router.get("/", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT id, nama, email, role, is_active, created_at FROM users ORDER BY created_at DESC",
+      "SELECT id, nama, email, role, is_active, created_at FROM it_users ORDER BY created_at DESC",
     );
     res.json(rows);
   } catch (err) {
@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)",
+      "INSERT INTO it_users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)",
       [nama, email, password_hash, role],
     );
     res
@@ -49,8 +49,20 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { nama, email, role, is_active } = req.body;
+    const isSelf = Number(req.params.id) === req.user.id;
+    if (isSelf && is_active === false) {
+      return res
+        .status(400)
+        .json({ message: "Tidak bisa menonaktifkan akun sendiri" });
+    }
+    if (isSelf && role && role !== "super_admin") {
+      return res
+        .status(400)
+        .json({ message: "Tidak bisa mengubah role akun sendiri" });
+    }
+
     await pool.query(
-      "UPDATE users SET nama=?, email=?, role=?, is_active=? WHERE id=?",
+      "UPDATE it_users SET nama=?, email=?, role=?, is_active=? WHERE id=?",
       [nama, email, role, is_active ? 1 : 0, req.params.id],
     );
     res.json({ message: "Pengguna berhasil diperbarui" });
@@ -68,7 +80,7 @@ router.put("/:id/password", async (req, res) => {
       return res.status(400).json({ message: "Password minimal 6 karakter" });
     }
     const password_hash = await bcrypt.hash(password, 10);
-    await pool.query("UPDATE users SET password_hash=? WHERE id=?", [
+    await pool.query("UPDATE it_users SET password_hash=? WHERE id=?", [
       password_hash,
       req.params.id,
     ]);
@@ -87,7 +99,7 @@ router.delete("/:id", async (req, res) => {
         .status(400)
         .json({ message: "Tidak bisa menghapus akun sendiri" });
     }
-    await pool.query("DELETE FROM users WHERE id = ?", [req.params.id]);
+    await pool.query("DELETE FROM it_users WHERE id = ?", [req.params.id]);
     res.json({ message: "Pengguna berhasil dihapus" });
   } catch (err) {
     console.error(err);

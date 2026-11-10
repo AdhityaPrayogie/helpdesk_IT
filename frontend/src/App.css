@@ -81,6 +81,7 @@
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -91,6 +92,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -101,6 +103,7 @@
     opacity: 0;
     transform: scale(0.94) translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -367,6 +370,7 @@ body {
 .tone-default {
   background: var(--card-bg);
 }
+
 .tone-default .stat-value {
   color: var(--ink);
 }
@@ -374,6 +378,7 @@ body {
 .tone-info {
   background: color-mix(in srgb, var(--accent) 14%, var(--card-bg));
 }
+
 .tone-info .stat-value {
   color: var(--accent-dark);
 }
@@ -381,6 +386,7 @@ body {
 .tone-proses {
   background: color-mix(in srgb, var(--c-proses-bg) 22%, var(--card-bg));
 }
+
 .tone-proses .stat-value {
   color: var(--c-pending-soft-text);
 }
@@ -388,6 +394,7 @@ body {
 .tone-success {
   background: color-mix(in srgb, var(--c-selesai-bg) 18%, var(--card-bg));
 }
+
 .tone-success .stat-value {
   color: var(--c-selesai-soft-text);
 }
@@ -395,6 +402,7 @@ body {
 .tone-danger {
   background: color-mix(in srgb, var(--c-batal-bg) 16%, var(--card-bg));
 }
+
 .tone-danger .stat-value {
   color: var(--c-error-soft-text);
 }
@@ -438,6 +446,7 @@ body {
   box-shadow: none;
   transition: opacity 0.15s var(--ease);
 }
+
 .btn-link:hover {
   opacity: 0.6;
   transform: none;
@@ -520,6 +529,50 @@ body {
 
 .form-field-full {
   grid-column: 1 / -1;
+}
+
+/* semua kontrol satu baris sama tinggi */
+.form-field select,
+.form-field input,
+.searchable-select input,
+.duration-preview {
+  height: 46px;
+}
+
+.form-grid > /* form utama: 4 kolom desktop, 2 kolom tablet, 1 kolom mobile */
+.logbook-form .form-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+@media (min-width: 1100px) {
+  .logbook-form .form-field-half {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 1099px) {
+  .logbook-form .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .logbook-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* modal edit: 2 kolom */
+.modal-box .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+@media (max-width: 599px) {
+  .modal-box .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-field label {
@@ -628,6 +681,7 @@ button:disabled {
   color: #d81b52;
   box-shadow: none;
 }
+
 .btn-danger-outline:hover {
   background: var(--c-error-soft-bg);
   box-shadow: var(--shadow-hard-sm);
@@ -996,14 +1050,17 @@ tbody tr:last-child td {
   background: var(--c-open-bg);
   color: var(--c-open-text);
 }
+
 .badge-proses {
   background: var(--c-proses-bg);
   color: var(--c-proses-text);
 }
+
 .badge-selesai {
   background: var(--c-selesai-bg);
   color: var(--c-selesai-text);
 }
+
 .badge-batal {
   background: var(--c-batal-bg);
   color: var(--c-batal-text);
@@ -1272,6 +1329,7 @@ tbody tr:last-child td {
   background: var(--c-selesai-soft-bg);
   color: var(--c-selesai-soft-text);
 }
+
 .toast-success .toast-icon {
   background: #00ff66;
 }
@@ -1280,6 +1338,7 @@ tbody tr:last-child td {
   background: var(--c-error-soft-bg);
   color: var(--c-error-soft-text);
 }
+
 .toast-error .toast-icon {
   background: #ff3366;
   color: #000000;
@@ -1289,6 +1348,7 @@ tbody tr:last-child td {
   background: var(--accent-soft);
   color: var(--accent-dark);
 }
+
 .toast-info .toast-icon {
   background: var(--accent);
   color: #ffffff;
@@ -1332,6 +1392,8 @@ tbody tr:last-child td {
    DURATION PREVIEW
    =================================================== */
 .duration-preview {
+  display: flex;
+  align-items: center;
   padding: 10px 12px;
   background: var(--accent-soft);
   color: var(--accent-dark);
@@ -1756,30 +1818,36 @@ tbody tr:last-child td {
 }
 
 @keyframes loginFloat1 {
+
   0%,
   100% {
     transform: translateY(0) rotate(-12deg);
   }
+
   50% {
     transform: translateY(-16px) rotate(-6deg);
   }
 }
 
 @keyframes loginFloat2 {
+
   0%,
   100% {
     transform: translateY(0) translateX(0);
   }
+
   50% {
     transform: translateY(14px) translateX(-8px);
   }
 }
 
 @keyframes loginFloat3 {
+
   0%,
   100% {
     transform: translateY(0) rotate(20deg);
   }
+
   50% {
     transform: translateY(-10px) rotate(28deg);
   }
@@ -1796,10 +1864,12 @@ tbody tr:last-child td {
     width: 60px;
     height: 60px;
   }
+
   .login-shape-2 {
     width: 46px;
     height: 46px;
   }
+
   .login-shape-3 {
     display: none;
   }
@@ -2161,9 +2231,15 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.searchable-option:hover {
+.searchable-option:hover,
+.searchable-option.highlighted {
   background: var(--accent-soft);
   padding-left: 16px;
+}
+
+.searchable-option.highlighted {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .searchable-option.selected {
@@ -2177,83 +2253,6 @@ tbody tr:last-child td {
   font-size: 13px;
   color: var(--muted);
   font-weight: 600;
-}
-
-/* ===================================================
-   SEARCHABLE MULTI-SELECT (chip/tag untuk Nama IT dsb)
-   =================================================== */
-.multiselect-control {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  cursor: text;
-  transition:
-    transform 0.15s var(--ease-snap),
-    box-shadow 0.15s var(--ease);
-}
-
-.multiselect-control:focus-within {
-  box-shadow: var(--shadow-hard-sm);
-  transform: translate(-1px, -1px);
-}
-
-.multiselect-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px 5px 12px;
-  background: var(--accent);
-  color: #fff;
-  border: 1.5px solid var(--ink);
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.multiselect-chip-remove {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.15s var(--ease);
-}
-
-.multiselect-chip-remove:hover {
-  background: rgba(255, 255, 255, 0.45);
-  transform: none;
-}
-
-.multiselect-input {
-  flex: 1 1 120px;
-  min-width: 120px;
-  border: none !important;
-  outline: none;
-  padding: 6px 4px !important;
-  margin: 0;
-  font-size: 14px;
-  font-family: inherit;
-  background: transparent !important;
-  color: var(--text);
-  box-shadow: none !important;
-  transform: none !important;
 }
 
 .multiselect-checkbox {
@@ -2282,6 +2281,7 @@ tbody tr:last-child td {
   .page-content {
     max-width: 1480px;
   }
+
   .stats-grid {
     grid-template-columns: repeat(5, 1fr);
   }
@@ -2303,9 +2303,11 @@ tbody tr:last-child td {
   .page-content {
     padding: 20px;
   }
+
   .topbar {
     padding: 16px 20px;
   }
+
   .charts-grid {
     grid-template-columns: 1fr;
   }
@@ -2352,12 +2354,15 @@ tbody tr:last-child td {
   .stats-grid {
     gap: 12px;
   }
+
   .charts-grid {
     grid-template-columns: 1fr;
   }
+
   table {
     font-size: 12px;
   }
+
   th,
   td {
     padding: 8px;
@@ -2369,22 +2374,27 @@ tbody tr:last-child td {
     align-items: flex-start;
     padding: 10px;
   }
+
   .modal-box {
     max-height: 92vh;
     padding: 16px;
     margin-top: 6px;
   }
+
   .searchable-dropdown,
   .export-kategori-dropdown {
     max-height: 35vh;
   }
+
   .login-page {
     align-items: flex-start;
     padding-top: 24px;
   }
+
   .login-shape {
     display: none;
   }
+
   .sidebar {
     padding-top: calc(12px + env(safe-area-inset-top));
   }
@@ -2496,6 +2506,7 @@ tbody tr:last-child td {
   .range-toggle {
     width: 100%;
   }
+
   .range-btn {
     flex: 1;
   }
@@ -2503,6 +2514,7 @@ tbody tr:last-child td {
   .month-picker {
     width: 100%;
   }
+
   .month-picker select {
     flex: 1;
   }
@@ -2577,14 +2589,17 @@ tbody tr:last-child td {
     flex-wrap: wrap;
     gap: 6px;
   }
+
   .action-btns button {
     flex: 1 1 calc(50% - 3px);
     min-width: 0;
     justify-content: center;
   }
+
   .master-add-form {
     flex-direction: column;
   }
+
   .master-tabs {
     overflow-x: auto;
     flex-wrap: nowrap;
@@ -2594,6 +2609,7 @@ tbody tr:last-child td {
     flex-direction: column;
     align-items: stretch;
   }
+
   .master-add-btn {
     width: 100%;
     justify-content: center;
@@ -2603,10 +2619,12 @@ tbody tr:last-child td {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .master-list-actions {
     width: 100%;
     flex-wrap: wrap;
   }
+
   .master-list-actions button {
     flex: 1 1 calc(50% - 4px);
     min-width: 0;
@@ -2623,7 +2641,7 @@ tbody tr:last-child td {
 
   .form-field input,
   .form-field select,
-  .form-field textarea,
+    .form-field textarea,
   .searchable-select input,
   .filter-field input,
   .export-bar input,
@@ -2692,13 +2710,16 @@ tbody tr:last-child td {
   .topbar h1 {
     font-size: 15px;
   }
+
   .login-form {
     padding: 22px 18px;
   }
+
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+
   .chart-summary {
     gap: 4px;
   }
@@ -2949,9 +2970,11 @@ tbody tr:last-child td {
 .spd-chart-dot.is-top-1 {
   background: #ffd700;
 }
+
 .spd-chart-dot.is-top-2 {
   background: #d6d6d6;
 }
+
 .spd-chart-dot.is-top-3 {
   background: #e3a267;
 }
@@ -3056,10 +3079,12 @@ tbody tr:last-child td {
   background: #ffd700;
   color: #000000;
 }
+
 .spd-rank.rank-2 {
   background: #d6d6d6;
   color: #000000;
 }
+
 .spd-rank.rank-3 {
   background: #e3a267;
   color: #000000;
@@ -3080,10 +3105,12 @@ tbody tr:last-child td {
   background: var(--c-selesai-bg);
   color: var(--c-selesai-text);
 }
+
 .spd-badge-proses {
   background: var(--c-proses-bg);
   color: var(--c-proses-text);
 }
+
 .spd-badge-batal {
   background: var(--c-batal-bg);
   color: var(--c-batal-text);
@@ -3097,6 +3124,7 @@ tbody tr:last-child td {
   .spd-summary-row {
     flex-wrap: wrap;
   }
+
   .spd-summary-item {
     min-width: calc(50% - 7px);
   }
@@ -3144,6 +3172,7 @@ tbody tr:last-child td {
   .spd-toggle {
     width: 100%;
   }
+
   .spd-toggle button {
     flex: 1;
   }

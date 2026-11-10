@@ -6,6 +6,7 @@ const emptyForm = { nama: "", email: "", role: "user", password: "" };
 export default function UserFormModal({
   mode,
   initialData,
+  isSelf = false,
   onClose,
   onSubmit,
 }) {
@@ -91,10 +92,19 @@ export default function UserFormModal({
 
             <div className="form-field form-field-full">
               <label>Role</label>
-              <select value={form.role} onChange={handleChange("role")}>
+              <select
+                value={form.role}
+                onChange={handleChange("role")}
+                disabled={isSelf}
+              >
                 <option value="user">User</option>
                 <option value="super_admin">Super Admin</option>
               </select>
+              {isSelf && (
+                <small className="muted">
+                  Role akun sendiri tidak dapat diubah di sini.
+                </small>
+              )}
             </div>
 
             {mode === "create" && (

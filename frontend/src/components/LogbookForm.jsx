@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import {
   getPic,
   getStaffIt,
@@ -6,8 +6,7 @@ import {
   getUnitKerja,
   createLogbook,
 } from "../api";
-import SearchableSelect from "./SearchableSelect";
-import SearchableMultiSelect from "./SearchableMultiSelect";
+import Combobox from "./Combobox";
 import ConfirmModal from "./ConfirmModal";
 import { useToast } from "./Toast";
 
@@ -17,6 +16,19 @@ const todayStr = () => {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+};
+
+const JENIS_PELAYANAN = [
+  { id: "Pelayanan", nama: "Pelayanan" },
+  { id: "Non Pelayanan", nama: "Non Pelayanan" },
+];
+
+// "—" kalau jam belum lengkap / tidak valid, supaya grid tidak bergeser
+const durasiMenit = (mulai, selesai) => {
+  if (!mulai || !selesai || selesai <= mulai) return "—";
+  const [h1, m1] = mulai.split(":").map(Number);
+  const [h2, m2] = selesai.split(":").map(Number);
+  return `${h2 * 60 + m2 - (h1 * 60 + m1)} menit`;
 };
 
 const emptyForm = {
@@ -35,6 +47,8 @@ const emptyForm = {
 
 export default function LogbookForm({ onSaved }) {
   const toast = useToast();
+  const uid = useId();
+  const fid = (name) => `${uid}-${name}`;
   const [picList, setPicList] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [kategoriList, setKategoriList] = useState([]);
@@ -73,12 +87,22 @@ export default function LogbookForm({ onSaved }) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSelectChange = (name) => (id) => {
-    setForm((prev) => ({ ...prev, [name]: id }));
-  };
-
-  const handleStaffChange = (ids) => {
-    setForm((prev) => ({ ...prev, staff_it_ids: ids }));
+  const handleSelectWheel = (e) => {
+    const select = e.currentTarget;
+    if (!select) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    try {
+      e.preventDefault();
+    } catch { }
+    const nextIdx =
+      e.deltaY > 0 ? select.selectedIndex + 1 : select.selectedIndex - 1;
+    if (nextIdx >= 0 && nextIdx < select.options.length) {
+      select.selectedIndex = nextIdx;
+      setForm((prev) => ({
+        ...prev,
+        [select.name]: select.options[nextIdx].value,
+      }));
+    }
   };
 
   const handleSubmit = (e) => {
@@ -94,7 +118,7 @@ export default function LogbookForm({ onSaved }) {
       !form.jenis_pelayanan
     ) {
       setErrorMsg(
-        "Nama PIC, minimal 1 Nama IT, Kategori, Isi Helpdesk, dan Jenis Pelayanan wajib diisi.",
+        "Nama Costumer, minimal 1 Nama IT, Kategori, Isi Helpdesk, dan Jenis Pelayanan wajib diisi.",
       );
       return;
     }
@@ -139,9 +163,11 @@ export default function LogbookForm({ onSaved }) {
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
       <div className="form-grid">
+
         <div className="form-field">
-          <label>Tanggal</label>
+          <label htmlFor={fid("tanggal")}>Tanggal</label>
           <input
+            id={fid("tanggal")}
             type="date"
             name="tanggal"
             value={form.tanggal}
@@ -151,8 +177,9 @@ export default function LogbookForm({ onSaved }) {
         </div>
 
         <div className="form-field">
-          <label>Jam Mulai</label>
+          <label htmlFor={fid("jam_mulai")}>Jam Mulai</label>
           <input
+            id={fid("jam_mulai")}
             type="time"
             name="jam_mulai"
             value={form.jam_mulai}
@@ -161,8 +188,9 @@ export default function LogbookForm({ onSaved }) {
         </div>
 
         <div className="form-field">
-          <label>Jam Selesai</label>
+          <label htmlFor={fid("jam_selesai")}>Jam Selesai</label>
           <input
+            id={fid("jam_selesai")}
             type="time"
             name="jam_selesai"
             value={form.jam_selesai}
@@ -170,90 +198,95 @@ export default function LogbookForm({ onSaved }) {
           />
         </div>
 
-        {form.jam_mulai &&
-          form.jam_selesai &&
-          form.jam_selesai > form.jam_mulai && (
-            <div className="form-field">
-              <label>Estimasi Durasi</label>
-              <div className="duration-preview">
-                {(() => {
-                  const [h1, m1] = form.jam_mulai.split(":").map(Number);
-                  const [h2, m2] = form.jam_selesai.split(":").map(Number);
-                  const totalMin = h2 * 60 + m2 - (h1 * 60 + m1);
-                  return `${totalMin} menit`;
-                })()}
-              </div>
-            </div>
-          )}
+        <div className="form-field">
+          <label>Estimasi Durasi</label>
+          <div className="duration-preview">
+            {durasiMenit(form.jam_mulai, form.jam_selesai)}
+          </div>
+        </div>
+
 
         <div className="form-field">
-          <label>Nama PIC</label>
-          <SearchableSelect
+          <label htmlFor={fid("pic_id")}>Nama Costumer</label>
+          <Combobox
+            id={fid("pic_id")}
             options={picList}
             value={form.pic_id}
-            onChange={handleSelectChange("pic_id")}
-            placeholder="Cari Nama PIC..."
+            onChange={(id) => setForm((prev) => ({ ...prev, pic_id: id }))}
+            placeholder="Pilih Nama Costumer..."
             required
           />
         </div>
 
         <div className="form-field">
-          <label>Nama IT (Teknisi)</label>
-          <SearchableMultiSelect
+          <label htmlFor={fid("staff_it_ids")}>Nama IT (Teknisi)</label>
+          <Combobox
+            id={fid("staff_it_ids")}
+            multiple
             options={staffList}
             value={form.staff_it_ids}
-            onChange={handleStaffChange}
-            placeholder="Cari & pilih Nama IT..."
+            onChange={(ids) =>
+              setForm((prev) => ({ ...prev, staff_it_ids: ids }))
+            }
+            placeholder="Pilih & tambah Nama IT..."
           />
         </div>
 
         <div className="form-field">
-          <label>Kategori IT</label>
-          <SearchableSelect
+          <label htmlFor={fid("kategori_id")}>Kategori IT</label>
+          <Combobox
+            id={fid("kategori_id")}
             options={kategoriList}
             value={form.kategori_id}
-            onChange={handleSelectChange("kategori_id")}
-            placeholder="Cari Kategori..."
+            onChange={(id) => setForm((prev) => ({ ...prev, kategori_id: id }))}
+            placeholder="Pilih Kategori IT..."
             required
           />
         </div>
 
         <div className="form-field">
-          <label>Unit Kerja (opsional)</label>
-          <SearchableSelect
+          <label htmlFor={fid("unit_kerja_id")}>Unit Kerja (opsional)</label>
+          <Combobox
+            id={fid("unit_kerja_id")}
             options={unitKerjaList}
             value={form.unit_kerja_id}
-            onChange={handleSelectChange("unit_kerja_id")}
-            placeholder="Cari Unit Kerja..."
+            onChange={(id) => setForm((prev) => ({ ...prev, unit_kerja_id: id }))}
+            placeholder="Pilih Unit Kerja (opsional)..."
           />
         </div>
 
         <div className="form-field">
-          <label>Jenis Pelayanan</label>
-          <select
-            name="jenis_pelayanan"
+          <label htmlFor={fid("jenis_pelayanan")}>Jenis Pelayanan</label>
+          <Combobox
+            id={fid("jenis_pelayanan")}
+            options={JENIS_PELAYANAN}
             value={form.jenis_pelayanan}
-            onChange={handleChange}
+            onChange={(id) => setForm((prev) => ({ ...prev, jenis_pelayanan: id }))}
+            placeholder="Pilih Jenis Pelayanan..."
             required
-          >
-            <option value="">-- Pilih --</option>
-            <option value="Pelayanan">Pelayanan</option>
-            <option value="Non Pelayanan">Non Pelayanan</option>
-          </select>
+          />
         </div>
 
         <div className="form-field">
-          <label>Status</label>
-          <select name="status" value={form.status} onChange={handleChange}>
+          <label htmlFor={fid("status")}>Status</label>
+          <select
+            id={fid("status")}
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            onWheel={handleSelectWheel}
+          >
             <option value="Proses">Proses</option>
             <option value="Selesai">Selesai</option>
             <option value="Batal">Batal</option>
           </select>
         </div>
 
+
         <div className="form-field form-field-full">
-          <label>Isi Helpdesk</label>
+          <label htmlFor={fid("isi_helpdesk")}>Isi Helpdesk</label>
           <textarea
+            id={fid("isi_helpdesk")}
             name="isi_helpdesk"
             value={form.isi_helpdesk}
             onChange={handleChange}
@@ -264,8 +297,9 @@ export default function LogbookForm({ onSaved }) {
         </div>
 
         <div className="form-field form-field-full">
-          <label>Tindakan (opsional)</label>
+          <label htmlFor={fid("tindakan")}>Tindakan (opsional)</label>
           <textarea
+            id={fid("tindakan")}
             name="tindakan"
             value={form.tindakan}
             onChange={handleChange}
